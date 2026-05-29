@@ -858,6 +858,11 @@ service WeftAgent {
   rpc ListUEFIVars  (ListUEFIVarsRequest)  returns (ListUEFIVarsResponse);
   rpc SetUEFIVar    (SetUEFIVarRequest)    returns (SetUEFIVarResponse);    // upsert by (ns, name)
   rpc DeleteUEFIVar (DeleteUEFIVarRequest) returns (DeleteUEFIVarResponse);
+
+  // --- Per-VM SSH keys (runtime-pushed, not create-time) ---
+  rpc ListVMSSHKeys   (ListVMSSHKeysRequest)   returns (ListVMSSHKeysResponse);
+  rpc AddVMSSHKey     (AddVMSSHKeyRequest)     returns (AddVMSSHKeyResponse);    // idempotent on fingerprint
+  rpc RemoveVMSSHKey  (RemoveVMSSHKeyRequest)  returns (RemoveVMSSHKeyResponse);
 }
 
 // --- Hosts -------------------------------------------------------
@@ -1510,3 +1515,52 @@ message DeleteUEFIVarRequest {
   string name      = 4;
 }
 message DeleteUEFIVarResponse { string deleted = 1; }
+
+// --- Per-VM SSH keys (runtime-pushed, not create-time) --------------
+//
+// Pairs with the webui drawer "SSH keys" tab (commit e5ac6b9) and
+// the retired CreateVMRequest.ssh_pub (commit 72008b3). Keys are
+// keyed by SHA256 fingerprint server-side ; the in-guest weft-vm-
+// agent subscribes to /weft/vm/<uuid>/property/sshkeys/* (or a
+// dedicated NATS subject) and rewrites authorized_keys idempotently.
+//
+// Add is idempotent on fingerprint match : a re-add returns 200 (not
+// 201) and doesn't double the entry. Removed keys stop authorising
+// next session ; existing connections aren't dropped (operator
+// invokes a reboot or a per-VM `pkill sshd` separately if needed).
+
+message VMSSHKey {
+  string fingerprint = 1;  // "SHA256:<b64>", server-computed
+  string type        = 2;  // "ssh-ed25519" | "ssh-rsa" | ...
+  string public_key  = 3;  // full "<type> <b64> [comment]" line
+  string comment     = 4;
+  string added_at    = 5;  // RFC3339
+}
+
+message ListVMSSHKeysRequest {
+  string vm_name    = 1;
+  string project    = 2;
+  int32  limit      = 3;
+  string page_token = 4;
+}
+message ListVMSSHKeysResponse {
+  repeated VMSSHKey keys            = 1;
+  string            next_page_token = 2;
+}
+
+// AddVMSSHKey : client sends the raw OpenSSH-format public-key line ;
+// server parses, computes the fingerprint, stores. Idempotent on
+// fingerprint.
+message AddVMSSHKeyRequest {
+  string vm_name    = 1;
+  string project    = 2;
+  string public_key = 3;
+}
+message AddVMSSHKeyResponse { VMSSHKey key = 1; }
+
+message RemoveVMSSHKeyRequest {
+  string vm_name     = 1;
+  string project     = 2;
+  string fingerprint = 3;
+}
+message RemoveVMSSHKeyResponse { string removed = 1; }
