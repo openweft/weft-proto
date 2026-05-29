@@ -118,12 +118,19 @@ message VMStatusResponse { VMInfo vm = 1; }
 // --- CreateVM ---
 
 message CreateVMRequest {
+  // Tag 6 (ssh_pub) was a cloud-init-era field — microVMs don't run
+  // cloud-init, and SSH keys are now a runtime concern pushed through
+  // the per-VM Properties surface (in-guest weft-vm-agent subscribes
+  // to /weft/vm/<uuid>/property/sshkeys/*). Reserved so a future
+  // field doesn't accidentally re-use the tag.
+  reserved 6;
+  reserved "ssh_pub";
+
   string name     = 1;
   string image    = 2;
   uint32 cpu      = 3;
   uint64 mem_mb   = 4;
   uint64 disk_gb  = 5;
-  string ssh_pub  = 6; // public key injected via cloud-init
   string project  = 7;
 
   // Nominal binding to a scheduling rule. When set, this VM is counted
