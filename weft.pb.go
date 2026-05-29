@@ -1064,14 +1064,31 @@ func (x *VMStatusResponse) GetVm() *VMInfo {
 }
 
 type CreateVMRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Image         string                 `protobuf:"bytes,2,opt,name=image,proto3" json:"image,omitempty"`
-	Cpu           uint32                 `protobuf:"varint,3,opt,name=cpu,proto3" json:"cpu,omitempty"`
-	MemMb         uint64                 `protobuf:"varint,4,opt,name=mem_mb,json=memMb,proto3" json:"mem_mb,omitempty"`
-	DiskGb        uint64                 `protobuf:"varint,5,opt,name=disk_gb,json=diskGb,proto3" json:"disk_gb,omitempty"`
-	SshPub        string                 `protobuf:"bytes,6,opt,name=ssh_pub,json=sshPub,proto3" json:"ssh_pub,omitempty"` // public key injected via cloud-init
-	Project       string                 `protobuf:"bytes,7,opt,name=project,proto3" json:"project,omitempty"`
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Name    string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Image   string                 `protobuf:"bytes,2,opt,name=image,proto3" json:"image,omitempty"`
+	Cpu     uint32                 `protobuf:"varint,3,opt,name=cpu,proto3" json:"cpu,omitempty"`
+	MemMb   uint64                 `protobuf:"varint,4,opt,name=mem_mb,json=memMb,proto3" json:"mem_mb,omitempty"`
+	DiskGb  uint64                 `protobuf:"varint,5,opt,name=disk_gb,json=diskGb,proto3" json:"disk_gb,omitempty"`
+	SshPub  string                 `protobuf:"bytes,6,opt,name=ssh_pub,json=sshPub,proto3" json:"ssh_pub,omitempty"` // public key injected via cloud-init
+	Project string                 `protobuf:"bytes,7,opt,name=project,proto3" json:"project,omitempty"`
+	// Nominal binding to a scheduling rule. When set, this VM is counted
+	// under the named rule regardless of label matching ; the rule's
+	// selector then only applies to VMs that have NO explicit binding
+	// (discovery path). Editing a rule's selector therefore never
+	// dislodges nominally-bound VMs — the property that makes selectors
+	// safe to refine in production. Empty = discovery path only.
+	//
+	// Pull/reconcile model : weft-agent persists this on the VMRecord
+	// and emits a vm.created event ; weft-network's reconcile loop
+	// applies the binding. No agent→network call in the hot path.
+	SchedulingRule string `protobuf:"bytes,8,opt,name=scheduling_rule,json=schedulingRule,proto3" json:"scheduling_rule,omitempty"`
+	// Private network to attach the primary NIC to. Empty = the
+	// project's default network. Same pull/reconcile semantics as
+	// scheduling_rule — weft-agent stores the label, weft-network
+	// reconciles AttachVM on its own. Editing the field on a live VM
+	// is a separate concern (not handled by CreateVM).
+	Network       string `protobuf:"bytes,9,opt,name=network,proto3" json:"network,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1151,6 +1168,20 @@ func (x *CreateVMRequest) GetSshPub() string {
 func (x *CreateVMRequest) GetProject() string {
 	if x != nil {
 		return x.Project
+	}
+	return ""
+}
+
+func (x *CreateVMRequest) GetSchedulingRule() string {
+	if x != nil {
+		return x.SchedulingRule
+	}
+	return ""
+}
+
+func (x *CreateVMRequest) GetNetwork() string {
+	if x != nil {
+		return x.Network
 	}
 	return ""
 }
@@ -11032,7 +11063,7 @@ const file_weft_proto_rawDesc = "" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
 	"\aproject\x18\x02 \x01(\tR\aproject\"3\n" +
 	"\x10VMStatusResponse\x12\x1f\n" +
-	"\x02vm\x18\x01 \x01(\v2\x0f.weft.v1.VMInfoR\x02vm\"\xb0\x01\n" +
+	"\x02vm\x18\x01 \x01(\v2\x0f.weft.v1.VMInfoR\x02vm\"\xf3\x01\n" +
 	"\x0fCreateVMRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05image\x18\x02 \x01(\tR\x05image\x12\x10\n" +
@@ -11040,7 +11071,9 @@ const file_weft_proto_rawDesc = "" +
 	"\x06mem_mb\x18\x04 \x01(\x04R\x05memMb\x12\x17\n" +
 	"\adisk_gb\x18\x05 \x01(\x04R\x06diskGb\x12\x17\n" +
 	"\assh_pub\x18\x06 \x01(\tR\x06sshPub\x12\x18\n" +
-	"\aproject\x18\a \x01(\tR\aproject\"\x12\n" +
+	"\aproject\x18\a \x01(\tR\aproject\x12'\n" +
+	"\x0fscheduling_rule\x18\b \x01(\tR\x0eschedulingRule\x12\x18\n" +
+	"\anetwork\x18\t \x01(\tR\anetwork\"\x12\n" +
 	"\x10CreateVMResponse\"\\\n" +
 	"\x0fDeleteVMRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
