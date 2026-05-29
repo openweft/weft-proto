@@ -107,6 +107,9 @@ const (
 	WeftAgent_ListVMProperties_FullMethodName                = "/weft.v1.WeftAgent/ListVMProperties"
 	WeftAgent_SetVMProperty_FullMethodName                   = "/weft.v1.WeftAgent/SetVMProperty"
 	WeftAgent_DeleteVMProperty_FullMethodName                = "/weft.v1.WeftAgent/DeleteVMProperty"
+	WeftAgent_ListUEFIVars_FullMethodName                    = "/weft.v1.WeftAgent/ListUEFIVars"
+	WeftAgent_SetUEFIVar_FullMethodName                      = "/weft.v1.WeftAgent/SetUEFIVar"
+	WeftAgent_DeleteUEFIVar_FullMethodName                   = "/weft.v1.WeftAgent/DeleteUEFIVar"
 )
 
 // WeftAgentClient is the client API for WeftAgent service.
@@ -256,6 +259,10 @@ type WeftAgentClient interface {
 	ListVMProperties(ctx context.Context, in *ListVMPropertiesRequest, opts ...grpc.CallOption) (*ListVMPropertiesResponse, error)
 	SetVMProperty(ctx context.Context, in *SetVMPropertyRequest, opts ...grpc.CallOption) (*SetVMPropertyResponse, error)
 	DeleteVMProperty(ctx context.Context, in *DeleteVMPropertyRequest, opts ...grpc.CallOption) (*DeleteVMPropertyResponse, error)
+	// --- UEFI NVRAM editor (per-VM firmware variables) ---
+	ListUEFIVars(ctx context.Context, in *ListUEFIVarsRequest, opts ...grpc.CallOption) (*ListUEFIVarsResponse, error)
+	SetUEFIVar(ctx context.Context, in *SetUEFIVarRequest, opts ...grpc.CallOption) (*SetUEFIVarResponse, error)
+	DeleteUEFIVar(ctx context.Context, in *DeleteUEFIVarRequest, opts ...grpc.CallOption) (*DeleteUEFIVarResponse, error)
 }
 
 type weftAgentClient struct {
@@ -1155,6 +1162,36 @@ func (c *weftAgentClient) DeleteVMProperty(ctx context.Context, in *DeleteVMProp
 	return out, nil
 }
 
+func (c *weftAgentClient) ListUEFIVars(ctx context.Context, in *ListUEFIVarsRequest, opts ...grpc.CallOption) (*ListUEFIVarsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListUEFIVarsResponse)
+	err := c.cc.Invoke(ctx, WeftAgent_ListUEFIVars_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *weftAgentClient) SetUEFIVar(ctx context.Context, in *SetUEFIVarRequest, opts ...grpc.CallOption) (*SetUEFIVarResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SetUEFIVarResponse)
+	err := c.cc.Invoke(ctx, WeftAgent_SetUEFIVar_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *weftAgentClient) DeleteUEFIVar(ctx context.Context, in *DeleteUEFIVarRequest, opts ...grpc.CallOption) (*DeleteUEFIVarResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteUEFIVarResponse)
+	err := c.cc.Invoke(ctx, WeftAgent_DeleteUEFIVar_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // WeftAgentServer is the server API for WeftAgent service.
 // All implementations must embed UnimplementedWeftAgentServer
 // for forward compatibility.
@@ -1302,6 +1339,10 @@ type WeftAgentServer interface {
 	ListVMProperties(context.Context, *ListVMPropertiesRequest) (*ListVMPropertiesResponse, error)
 	SetVMProperty(context.Context, *SetVMPropertyRequest) (*SetVMPropertyResponse, error)
 	DeleteVMProperty(context.Context, *DeleteVMPropertyRequest) (*DeleteVMPropertyResponse, error)
+	// --- UEFI NVRAM editor (per-VM firmware variables) ---
+	ListUEFIVars(context.Context, *ListUEFIVarsRequest) (*ListUEFIVarsResponse, error)
+	SetUEFIVar(context.Context, *SetUEFIVarRequest) (*SetUEFIVarResponse, error)
+	DeleteUEFIVar(context.Context, *DeleteUEFIVarRequest) (*DeleteUEFIVarResponse, error)
 	mustEmbedUnimplementedWeftAgentServer()
 }
 
@@ -1575,6 +1616,15 @@ func (UnimplementedWeftAgentServer) SetVMProperty(context.Context, *SetVMPropert
 }
 func (UnimplementedWeftAgentServer) DeleteVMProperty(context.Context, *DeleteVMPropertyRequest) (*DeleteVMPropertyResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteVMProperty not implemented")
+}
+func (UnimplementedWeftAgentServer) ListUEFIVars(context.Context, *ListUEFIVarsRequest) (*ListUEFIVarsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListUEFIVars not implemented")
+}
+func (UnimplementedWeftAgentServer) SetUEFIVar(context.Context, *SetUEFIVarRequest) (*SetUEFIVarResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SetUEFIVar not implemented")
+}
+func (UnimplementedWeftAgentServer) DeleteUEFIVar(context.Context, *DeleteUEFIVarRequest) (*DeleteUEFIVarResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteUEFIVar not implemented")
 }
 func (UnimplementedWeftAgentServer) mustEmbedUnimplementedWeftAgentServer() {}
 func (UnimplementedWeftAgentServer) testEmbeddedByValue()                   {}
@@ -3174,6 +3224,60 @@ func _WeftAgent_DeleteVMProperty_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WeftAgent_ListUEFIVars_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListUEFIVarsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WeftAgentServer).ListUEFIVars(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WeftAgent_ListUEFIVars_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WeftAgentServer).ListUEFIVars(ctx, req.(*ListUEFIVarsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WeftAgent_SetUEFIVar_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetUEFIVarRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WeftAgentServer).SetUEFIVar(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WeftAgent_SetUEFIVar_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WeftAgentServer).SetUEFIVar(ctx, req.(*SetUEFIVarRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WeftAgent_DeleteUEFIVar_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteUEFIVarRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WeftAgentServer).DeleteUEFIVar(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WeftAgent_DeleteUEFIVar_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WeftAgentServer).DeleteUEFIVar(ctx, req.(*DeleteUEFIVarRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // WeftAgent_ServiceDesc is the grpc.ServiceDesc for WeftAgent service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -3528,6 +3632,18 @@ var WeftAgent_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteVMProperty",
 			Handler:    _WeftAgent_DeleteVMProperty_Handler,
+		},
+		{
+			MethodName: "ListUEFIVars",
+			Handler:    _WeftAgent_ListUEFIVars_Handler,
+		},
+		{
+			MethodName: "SetUEFIVar",
+			Handler:    _WeftAgent_SetUEFIVar_Handler,
+		},
+		{
+			MethodName: "DeleteUEFIVar",
+			Handler:    _WeftAgent_DeleteUEFIVar_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
