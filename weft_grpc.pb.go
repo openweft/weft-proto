@@ -104,6 +104,9 @@ const (
 	WeftAgent_GetScript_FullMethodName                       = "/weft.v1.WeftAgent/GetScript"
 	WeftAgent_SetScript_FullMethodName                       = "/weft.v1.WeftAgent/SetScript"
 	WeftAgent_DeleteScript_FullMethodName                    = "/weft.v1.WeftAgent/DeleteScript"
+	WeftAgent_ListVMProperties_FullMethodName                = "/weft.v1.WeftAgent/ListVMProperties"
+	WeftAgent_SetVMProperty_FullMethodName                   = "/weft.v1.WeftAgent/SetVMProperty"
+	WeftAgent_DeleteVMProperty_FullMethodName                = "/weft.v1.WeftAgent/DeleteVMProperty"
 )
 
 // WeftAgentClient is the client API for WeftAgent service.
@@ -249,6 +252,10 @@ type WeftAgentClient interface {
 	GetScript(ctx context.Context, in *GetScriptRequest, opts ...grpc.CallOption) (*GetScriptResponse, error)
 	SetScript(ctx context.Context, in *SetScriptRequest, opts ...grpc.CallOption) (*SetScriptResponse, error)
 	DeleteScript(ctx context.Context, in *DeleteScriptRequest, opts ...grpc.CallOption) (*DeleteScriptResponse, error)
+	// --- Per-VM properties (host-set annotations w/ guest_readable flag) ---
+	ListVMProperties(ctx context.Context, in *ListVMPropertiesRequest, opts ...grpc.CallOption) (*ListVMPropertiesResponse, error)
+	SetVMProperty(ctx context.Context, in *SetVMPropertyRequest, opts ...grpc.CallOption) (*SetVMPropertyResponse, error)
+	DeleteVMProperty(ctx context.Context, in *DeleteVMPropertyRequest, opts ...grpc.CallOption) (*DeleteVMPropertyResponse, error)
 }
 
 type weftAgentClient struct {
@@ -1118,6 +1125,36 @@ func (c *weftAgentClient) DeleteScript(ctx context.Context, in *DeleteScriptRequ
 	return out, nil
 }
 
+func (c *weftAgentClient) ListVMProperties(ctx context.Context, in *ListVMPropertiesRequest, opts ...grpc.CallOption) (*ListVMPropertiesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListVMPropertiesResponse)
+	err := c.cc.Invoke(ctx, WeftAgent_ListVMProperties_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *weftAgentClient) SetVMProperty(ctx context.Context, in *SetVMPropertyRequest, opts ...grpc.CallOption) (*SetVMPropertyResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SetVMPropertyResponse)
+	err := c.cc.Invoke(ctx, WeftAgent_SetVMProperty_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *weftAgentClient) DeleteVMProperty(ctx context.Context, in *DeleteVMPropertyRequest, opts ...grpc.CallOption) (*DeleteVMPropertyResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteVMPropertyResponse)
+	err := c.cc.Invoke(ctx, WeftAgent_DeleteVMProperty_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // WeftAgentServer is the server API for WeftAgent service.
 // All implementations must embed UnimplementedWeftAgentServer
 // for forward compatibility.
@@ -1261,6 +1298,10 @@ type WeftAgentServer interface {
 	GetScript(context.Context, *GetScriptRequest) (*GetScriptResponse, error)
 	SetScript(context.Context, *SetScriptRequest) (*SetScriptResponse, error)
 	DeleteScript(context.Context, *DeleteScriptRequest) (*DeleteScriptResponse, error)
+	// --- Per-VM properties (host-set annotations w/ guest_readable flag) ---
+	ListVMProperties(context.Context, *ListVMPropertiesRequest) (*ListVMPropertiesResponse, error)
+	SetVMProperty(context.Context, *SetVMPropertyRequest) (*SetVMPropertyResponse, error)
+	DeleteVMProperty(context.Context, *DeleteVMPropertyRequest) (*DeleteVMPropertyResponse, error)
 	mustEmbedUnimplementedWeftAgentServer()
 }
 
@@ -1525,6 +1566,15 @@ func (UnimplementedWeftAgentServer) SetScript(context.Context, *SetScriptRequest
 }
 func (UnimplementedWeftAgentServer) DeleteScript(context.Context, *DeleteScriptRequest) (*DeleteScriptResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteScript not implemented")
+}
+func (UnimplementedWeftAgentServer) ListVMProperties(context.Context, *ListVMPropertiesRequest) (*ListVMPropertiesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListVMProperties not implemented")
+}
+func (UnimplementedWeftAgentServer) SetVMProperty(context.Context, *SetVMPropertyRequest) (*SetVMPropertyResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SetVMProperty not implemented")
+}
+func (UnimplementedWeftAgentServer) DeleteVMProperty(context.Context, *DeleteVMPropertyRequest) (*DeleteVMPropertyResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteVMProperty not implemented")
 }
 func (UnimplementedWeftAgentServer) mustEmbedUnimplementedWeftAgentServer() {}
 func (UnimplementedWeftAgentServer) testEmbeddedByValue()                   {}
@@ -3070,6 +3120,60 @@ func _WeftAgent_DeleteScript_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WeftAgent_ListVMProperties_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListVMPropertiesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WeftAgentServer).ListVMProperties(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WeftAgent_ListVMProperties_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WeftAgentServer).ListVMProperties(ctx, req.(*ListVMPropertiesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WeftAgent_SetVMProperty_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetVMPropertyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WeftAgentServer).SetVMProperty(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WeftAgent_SetVMProperty_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WeftAgentServer).SetVMProperty(ctx, req.(*SetVMPropertyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WeftAgent_DeleteVMProperty_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteVMPropertyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WeftAgentServer).DeleteVMProperty(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WeftAgent_DeleteVMProperty_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WeftAgentServer).DeleteVMProperty(ctx, req.(*DeleteVMPropertyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // WeftAgent_ServiceDesc is the grpc.ServiceDesc for WeftAgent service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -3412,6 +3516,18 @@ var WeftAgent_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteScript",
 			Handler:    _WeftAgent_DeleteScript_Handler,
+		},
+		{
+			MethodName: "ListVMProperties",
+			Handler:    _WeftAgent_ListVMProperties_Handler,
+		},
+		{
+			MethodName: "SetVMProperty",
+			Handler:    _WeftAgent_SetVMProperty_Handler,
+		},
+		{
+			MethodName: "DeleteVMProperty",
+			Handler:    _WeftAgent_DeleteVMProperty_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
