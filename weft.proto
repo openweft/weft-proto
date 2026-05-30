@@ -842,6 +842,12 @@ service WeftAgent {
   rpc GetFlavor    (GetFlavorRequest)    returns (GetFlavorResponse);
   rpc SetFlavor    (SetFlavorRequest)    returns (SetFlavorResponse);   // upsert
   rpc DeleteFlavor (DeleteFlavorRequest) returns (DeleteFlavorResponse);
+
+  // --- Provisioning scripts (named sh bodies, etcd-backed) ---
+  rpc ListScripts  (ListScriptsRequest)  returns (ListScriptsResponse);
+  rpc GetScript    (GetScriptRequest)    returns (GetScriptResponse);
+  rpc SetScript    (SetScriptRequest)    returns (SetScriptResponse);   // upsert
+  rpc DeleteScript (DeleteScriptRequest) returns (DeleteScriptResponse);
 }
 
 // --- Hosts -------------------------------------------------------
@@ -1369,3 +1375,39 @@ message SetFlavorResponse { Flavor flavor = 1; }
 
 message DeleteFlavorRequest  { string name = 1; }
 message DeleteFlavorResponse { string deleted = 1; }
+
+// --- Provisioning scripts (named sh bodies, etcd-backed) -------------
+//
+// Reusable first-boot scripts. CreateVMRequest doesn't reference
+// them — the webui resolves a chosen script name to its body at
+// submit and stamps the body verbatim onto weft.boot/script
+// (per-VM property). Decoupling the catalogue from the boot
+// trigger keeps the in-guest weft-vm-agent unchanged : it reads
+// weft.boot/script and runs it, regardless of whether the body
+// came from a catalogue entry or a one-off paste.
+
+message Script {
+  string name        = 1;
+  string description = 2;
+  string body        = 3;  // POSIX sh source ; mvdan.cc/sh/v3 in the guest
+  string updated_at  = 4;  // RFC3339, server-stamped
+  string updated_by  = 5;  // OIDC sub / email of the last editor
+}
+
+message ListScriptsRequest {
+  int32  limit      = 1;
+  string page_token = 2;
+}
+message ListScriptsResponse {
+  repeated Script scripts        = 1;
+  string          next_page_token = 2;
+}
+
+message GetScriptRequest  { string name = 1; }
+message GetScriptResponse { Script script = 1; }
+
+message SetScriptRequest  { Script script = 1; }
+message SetScriptResponse { Script script = 1; }
+
+message DeleteScriptRequest  { string name = 1; }
+message DeleteScriptResponse { string deleted = 1; }

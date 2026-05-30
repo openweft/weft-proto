@@ -100,6 +100,10 @@ const (
 	WeftAgent_GetFlavor_FullMethodName                       = "/weft.v1.WeftAgent/GetFlavor"
 	WeftAgent_SetFlavor_FullMethodName                       = "/weft.v1.WeftAgent/SetFlavor"
 	WeftAgent_DeleteFlavor_FullMethodName                    = "/weft.v1.WeftAgent/DeleteFlavor"
+	WeftAgent_ListScripts_FullMethodName                     = "/weft.v1.WeftAgent/ListScripts"
+	WeftAgent_GetScript_FullMethodName                       = "/weft.v1.WeftAgent/GetScript"
+	WeftAgent_SetScript_FullMethodName                       = "/weft.v1.WeftAgent/SetScript"
+	WeftAgent_DeleteScript_FullMethodName                    = "/weft.v1.WeftAgent/DeleteScript"
 )
 
 // WeftAgentClient is the client API for WeftAgent service.
@@ -240,6 +244,11 @@ type WeftAgentClient interface {
 	GetFlavor(ctx context.Context, in *GetFlavorRequest, opts ...grpc.CallOption) (*GetFlavorResponse, error)
 	SetFlavor(ctx context.Context, in *SetFlavorRequest, opts ...grpc.CallOption) (*SetFlavorResponse, error)
 	DeleteFlavor(ctx context.Context, in *DeleteFlavorRequest, opts ...grpc.CallOption) (*DeleteFlavorResponse, error)
+	// --- Provisioning scripts (named sh bodies, etcd-backed) ---
+	ListScripts(ctx context.Context, in *ListScriptsRequest, opts ...grpc.CallOption) (*ListScriptsResponse, error)
+	GetScript(ctx context.Context, in *GetScriptRequest, opts ...grpc.CallOption) (*GetScriptResponse, error)
+	SetScript(ctx context.Context, in *SetScriptRequest, opts ...grpc.CallOption) (*SetScriptResponse, error)
+	DeleteScript(ctx context.Context, in *DeleteScriptRequest, opts ...grpc.CallOption) (*DeleteScriptResponse, error)
 }
 
 type weftAgentClient struct {
@@ -1069,6 +1078,46 @@ func (c *weftAgentClient) DeleteFlavor(ctx context.Context, in *DeleteFlavorRequ
 	return out, nil
 }
 
+func (c *weftAgentClient) ListScripts(ctx context.Context, in *ListScriptsRequest, opts ...grpc.CallOption) (*ListScriptsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListScriptsResponse)
+	err := c.cc.Invoke(ctx, WeftAgent_ListScripts_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *weftAgentClient) GetScript(ctx context.Context, in *GetScriptRequest, opts ...grpc.CallOption) (*GetScriptResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetScriptResponse)
+	err := c.cc.Invoke(ctx, WeftAgent_GetScript_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *weftAgentClient) SetScript(ctx context.Context, in *SetScriptRequest, opts ...grpc.CallOption) (*SetScriptResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SetScriptResponse)
+	err := c.cc.Invoke(ctx, WeftAgent_SetScript_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *weftAgentClient) DeleteScript(ctx context.Context, in *DeleteScriptRequest, opts ...grpc.CallOption) (*DeleteScriptResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteScriptResponse)
+	err := c.cc.Invoke(ctx, WeftAgent_DeleteScript_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // WeftAgentServer is the server API for WeftAgent service.
 // All implementations must embed UnimplementedWeftAgentServer
 // for forward compatibility.
@@ -1207,6 +1256,11 @@ type WeftAgentServer interface {
 	GetFlavor(context.Context, *GetFlavorRequest) (*GetFlavorResponse, error)
 	SetFlavor(context.Context, *SetFlavorRequest) (*SetFlavorResponse, error)
 	DeleteFlavor(context.Context, *DeleteFlavorRequest) (*DeleteFlavorResponse, error)
+	// --- Provisioning scripts (named sh bodies, etcd-backed) ---
+	ListScripts(context.Context, *ListScriptsRequest) (*ListScriptsResponse, error)
+	GetScript(context.Context, *GetScriptRequest) (*GetScriptResponse, error)
+	SetScript(context.Context, *SetScriptRequest) (*SetScriptResponse, error)
+	DeleteScript(context.Context, *DeleteScriptRequest) (*DeleteScriptResponse, error)
 	mustEmbedUnimplementedWeftAgentServer()
 }
 
@@ -1459,6 +1513,18 @@ func (UnimplementedWeftAgentServer) SetFlavor(context.Context, *SetFlavorRequest
 }
 func (UnimplementedWeftAgentServer) DeleteFlavor(context.Context, *DeleteFlavorRequest) (*DeleteFlavorResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteFlavor not implemented")
+}
+func (UnimplementedWeftAgentServer) ListScripts(context.Context, *ListScriptsRequest) (*ListScriptsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListScripts not implemented")
+}
+func (UnimplementedWeftAgentServer) GetScript(context.Context, *GetScriptRequest) (*GetScriptResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetScript not implemented")
+}
+func (UnimplementedWeftAgentServer) SetScript(context.Context, *SetScriptRequest) (*SetScriptResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SetScript not implemented")
+}
+func (UnimplementedWeftAgentServer) DeleteScript(context.Context, *DeleteScriptRequest) (*DeleteScriptResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteScript not implemented")
 }
 func (UnimplementedWeftAgentServer) mustEmbedUnimplementedWeftAgentServer() {}
 func (UnimplementedWeftAgentServer) testEmbeddedByValue()                   {}
@@ -2932,6 +2998,78 @@ func _WeftAgent_DeleteFlavor_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WeftAgent_ListScripts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListScriptsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WeftAgentServer).ListScripts(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WeftAgent_ListScripts_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WeftAgentServer).ListScripts(ctx, req.(*ListScriptsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WeftAgent_GetScript_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetScriptRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WeftAgentServer).GetScript(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WeftAgent_GetScript_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WeftAgentServer).GetScript(ctx, req.(*GetScriptRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WeftAgent_SetScript_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetScriptRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WeftAgentServer).SetScript(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WeftAgent_SetScript_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WeftAgentServer).SetScript(ctx, req.(*SetScriptRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WeftAgent_DeleteScript_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteScriptRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WeftAgentServer).DeleteScript(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WeftAgent_DeleteScript_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WeftAgentServer).DeleteScript(ctx, req.(*DeleteScriptRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // WeftAgent_ServiceDesc is the grpc.ServiceDesc for WeftAgent service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -3258,6 +3396,22 @@ var WeftAgent_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteFlavor",
 			Handler:    _WeftAgent_DeleteFlavor_Handler,
+		},
+		{
+			MethodName: "ListScripts",
+			Handler:    _WeftAgent_ListScripts_Handler,
+		},
+		{
+			MethodName: "GetScript",
+			Handler:    _WeftAgent_GetScript_Handler,
+		},
+		{
+			MethodName: "SetScript",
+			Handler:    _WeftAgent_SetScript_Handler,
+		},
+		{
+			MethodName: "DeleteScript",
+			Handler:    _WeftAgent_DeleteScript_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
