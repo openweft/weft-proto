@@ -96,6 +96,10 @@ const (
 	WeftAgent_ReleaseFloatingIP_FullMethodName               = "/weft.v1.WeftAgent/ReleaseFloatingIP"
 	WeftAgent_MapFloatingIP_FullMethodName                   = "/weft.v1.WeftAgent/MapFloatingIP"
 	WeftAgent_UnmapFloatingIP_FullMethodName                 = "/weft.v1.WeftAgent/UnmapFloatingIP"
+	WeftAgent_ListFlavors_FullMethodName                     = "/weft.v1.WeftAgent/ListFlavors"
+	WeftAgent_GetFlavor_FullMethodName                       = "/weft.v1.WeftAgent/GetFlavor"
+	WeftAgent_SetFlavor_FullMethodName                       = "/weft.v1.WeftAgent/SetFlavor"
+	WeftAgent_DeleteFlavor_FullMethodName                    = "/weft.v1.WeftAgent/DeleteFlavor"
 )
 
 // WeftAgentClient is the client API for WeftAgent service.
@@ -231,6 +235,11 @@ type WeftAgentClient interface {
 	ReleaseFloatingIP(ctx context.Context, in *ReleaseFloatingIPRequest, opts ...grpc.CallOption) (*ReleaseFloatingIPResponse, error)
 	MapFloatingIP(ctx context.Context, in *MapFloatingIPRequest, opts ...grpc.CallOption) (*MapFloatingIPResponse, error)
 	UnmapFloatingIP(ctx context.Context, in *UnmapFloatingIPRequest, opts ...grpc.CallOption) (*UnmapFloatingIPResponse, error)
+	// --- Flavors (cluster-wide compute envelope catalogue, etcd-backed) ---
+	ListFlavors(ctx context.Context, in *ListFlavorsRequest, opts ...grpc.CallOption) (*ListFlavorsResponse, error)
+	GetFlavor(ctx context.Context, in *GetFlavorRequest, opts ...grpc.CallOption) (*GetFlavorResponse, error)
+	SetFlavor(ctx context.Context, in *SetFlavorRequest, opts ...grpc.CallOption) (*SetFlavorResponse, error)
+	DeleteFlavor(ctx context.Context, in *DeleteFlavorRequest, opts ...grpc.CallOption) (*DeleteFlavorResponse, error)
 }
 
 type weftAgentClient struct {
@@ -1020,6 +1029,46 @@ func (c *weftAgentClient) UnmapFloatingIP(ctx context.Context, in *UnmapFloating
 	return out, nil
 }
 
+func (c *weftAgentClient) ListFlavors(ctx context.Context, in *ListFlavorsRequest, opts ...grpc.CallOption) (*ListFlavorsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListFlavorsResponse)
+	err := c.cc.Invoke(ctx, WeftAgent_ListFlavors_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *weftAgentClient) GetFlavor(ctx context.Context, in *GetFlavorRequest, opts ...grpc.CallOption) (*GetFlavorResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetFlavorResponse)
+	err := c.cc.Invoke(ctx, WeftAgent_GetFlavor_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *weftAgentClient) SetFlavor(ctx context.Context, in *SetFlavorRequest, opts ...grpc.CallOption) (*SetFlavorResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SetFlavorResponse)
+	err := c.cc.Invoke(ctx, WeftAgent_SetFlavor_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *weftAgentClient) DeleteFlavor(ctx context.Context, in *DeleteFlavorRequest, opts ...grpc.CallOption) (*DeleteFlavorResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteFlavorResponse)
+	err := c.cc.Invoke(ctx, WeftAgent_DeleteFlavor_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // WeftAgentServer is the server API for WeftAgent service.
 // All implementations must embed UnimplementedWeftAgentServer
 // for forward compatibility.
@@ -1153,6 +1202,11 @@ type WeftAgentServer interface {
 	ReleaseFloatingIP(context.Context, *ReleaseFloatingIPRequest) (*ReleaseFloatingIPResponse, error)
 	MapFloatingIP(context.Context, *MapFloatingIPRequest) (*MapFloatingIPResponse, error)
 	UnmapFloatingIP(context.Context, *UnmapFloatingIPRequest) (*UnmapFloatingIPResponse, error)
+	// --- Flavors (cluster-wide compute envelope catalogue, etcd-backed) ---
+	ListFlavors(context.Context, *ListFlavorsRequest) (*ListFlavorsResponse, error)
+	GetFlavor(context.Context, *GetFlavorRequest) (*GetFlavorResponse, error)
+	SetFlavor(context.Context, *SetFlavorRequest) (*SetFlavorResponse, error)
+	DeleteFlavor(context.Context, *DeleteFlavorRequest) (*DeleteFlavorResponse, error)
 	mustEmbedUnimplementedWeftAgentServer()
 }
 
@@ -1393,6 +1447,18 @@ func (UnimplementedWeftAgentServer) MapFloatingIP(context.Context, *MapFloatingI
 }
 func (UnimplementedWeftAgentServer) UnmapFloatingIP(context.Context, *UnmapFloatingIPRequest) (*UnmapFloatingIPResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method UnmapFloatingIP not implemented")
+}
+func (UnimplementedWeftAgentServer) ListFlavors(context.Context, *ListFlavorsRequest) (*ListFlavorsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListFlavors not implemented")
+}
+func (UnimplementedWeftAgentServer) GetFlavor(context.Context, *GetFlavorRequest) (*GetFlavorResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetFlavor not implemented")
+}
+func (UnimplementedWeftAgentServer) SetFlavor(context.Context, *SetFlavorRequest) (*SetFlavorResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SetFlavor not implemented")
+}
+func (UnimplementedWeftAgentServer) DeleteFlavor(context.Context, *DeleteFlavorRequest) (*DeleteFlavorResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteFlavor not implemented")
 }
 func (UnimplementedWeftAgentServer) mustEmbedUnimplementedWeftAgentServer() {}
 func (UnimplementedWeftAgentServer) testEmbeddedByValue()                   {}
@@ -2794,6 +2860,78 @@ func _WeftAgent_UnmapFloatingIP_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WeftAgent_ListFlavors_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListFlavorsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WeftAgentServer).ListFlavors(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WeftAgent_ListFlavors_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WeftAgentServer).ListFlavors(ctx, req.(*ListFlavorsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WeftAgent_GetFlavor_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetFlavorRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WeftAgentServer).GetFlavor(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WeftAgent_GetFlavor_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WeftAgentServer).GetFlavor(ctx, req.(*GetFlavorRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WeftAgent_SetFlavor_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetFlavorRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WeftAgentServer).SetFlavor(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WeftAgent_SetFlavor_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WeftAgentServer).SetFlavor(ctx, req.(*SetFlavorRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WeftAgent_DeleteFlavor_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteFlavorRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WeftAgentServer).DeleteFlavor(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WeftAgent_DeleteFlavor_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WeftAgentServer).DeleteFlavor(ctx, req.(*DeleteFlavorRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // WeftAgent_ServiceDesc is the grpc.ServiceDesc for WeftAgent service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -3104,6 +3242,22 @@ var WeftAgent_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UnmapFloatingIP",
 			Handler:    _WeftAgent_UnmapFloatingIP_Handler,
+		},
+		{
+			MethodName: "ListFlavors",
+			Handler:    _WeftAgent_ListFlavors_Handler,
+		},
+		{
+			MethodName: "GetFlavor",
+			Handler:    _WeftAgent_GetFlavor_Handler,
+		},
+		{
+			MethodName: "SetFlavor",
+			Handler:    _WeftAgent_SetFlavor_Handler,
+		},
+		{
+			MethodName: "DeleteFlavor",
+			Handler:    _WeftAgent_DeleteFlavor_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
