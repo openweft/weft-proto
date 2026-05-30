@@ -848,6 +848,11 @@ service WeftAgent {
   rpc GetScript    (GetScriptRequest)    returns (GetScriptResponse);
   rpc SetScript    (SetScriptRequest)    returns (SetScriptResponse);   // upsert
   rpc DeleteScript (DeleteScriptRequest) returns (DeleteScriptResponse);
+
+  // --- Per-VM properties (host-set annotations w/ guest_readable flag) ---
+  rpc ListVMProperties  (ListVMPropertiesRequest)  returns (ListVMPropertiesResponse);
+  rpc SetVMProperty     (SetVMPropertyRequest)     returns (SetVMPropertyResponse);    // upsert by key
+  rpc DeleteVMProperty  (DeleteVMPropertyRequest)  returns (DeleteVMPropertyResponse);
 }
 
 // --- Hosts -------------------------------------------------------
@@ -1411,3 +1416,46 @@ message SetScriptResponse { Script script = 1; }
 
 message DeleteScriptRequest  { string name = 1; }
 message DeleteScriptResponse { string deleted = 1; }
+
+// --- Per-VM properties (host-set annotations) ------------------------
+//
+// Free-form key/value bag attached to a VM. `guest_readable=true`
+// opts the entry into the read surface the in-guest weft-vm-agent
+// exposes over NATS (subject /weft/vm/<uuid>/property/<key>) ;
+// false = host-only metadata (billing tags, security labels, ...).
+//
+// Reserved key prefix `weft.boot/*` carries first-boot provisioning
+// (source, ref, script) — set by CreateVM, read by weft-vm-agent.
+// See lifecycle.go writeBootProperty in weft-webui.
+
+message VMProperty {
+  string key            = 1;
+  string value          = 2;
+  bool   guest_readable = 3;
+  string updated_at     = 4;  // RFC3339
+}
+
+message ListVMPropertiesRequest {
+  string vm_name = 1;
+  string project = 2; // narrow if the VM name is ambiguous across projects
+  int32  limit      = 3;
+  string page_token = 4;
+}
+message ListVMPropertiesResponse {
+  repeated VMProperty properties      = 1;
+  string              next_page_token = 2;
+}
+
+message SetVMPropertyRequest {
+  string     vm_name  = 1;
+  string     project  = 2;
+  VMProperty property = 3;
+}
+message SetVMPropertyResponse { VMProperty property = 1; }
+
+message DeleteVMPropertyRequest {
+  string vm_name = 1;
+  string project = 2;
+  string key     = 3;
+}
+message DeleteVMPropertyResponse { string deleted = 1; }
