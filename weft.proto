@@ -836,6 +836,12 @@ service WeftAgent {
   rpc ReleaseFloatingIP (ReleaseFloatingIPRequest) returns (ReleaseFloatingIPResponse);
   rpc MapFloatingIP     (MapFloatingIPRequest)     returns (MapFloatingIPResponse);
   rpc UnmapFloatingIP   (UnmapFloatingIPRequest)   returns (UnmapFloatingIPResponse);
+
+  // --- Flavors (cluster-wide compute envelope catalogue, etcd-backed) ---
+  rpc ListFlavors  (ListFlavorsRequest)  returns (ListFlavorsResponse);
+  rpc GetFlavor    (GetFlavorRequest)    returns (GetFlavorResponse);
+  rpc SetFlavor    (SetFlavorRequest)    returns (SetFlavorResponse);   // upsert
+  rpc DeleteFlavor (DeleteFlavorRequest) returns (DeleteFlavorResponse);
 }
 
 // --- Hosts -------------------------------------------------------
@@ -1322,3 +1328,44 @@ message MapFloatingIPResponse { FloatingIPInfo floating_ip = 1; }
 
 message UnmapFloatingIPRequest  { string uuid = 1; }
 message UnmapFloatingIPResponse { FloatingIPInfo floating_ip = 1; }
+
+// --- Flavors (compute envelope catalogue) ----------------------------
+//
+// A flavor names a sizing bundle picked at VM create time. Catalogue
+// is cluster-wide ; only the superadmin defines flavors. Source of
+// truth is etcd (`/weft/catalogue/flavors/<name>`) ; weft-agent
+// watches the prefix and serves these RPCs. RAM is "4Gi" / "256Mi"
+// style so the catalogue stays human-editable ; consumers parse to
+// megabytes at the wire boundary.
+
+message Flavor {
+  string name         = 1;
+  int32  vcpu         = 2;
+  string ram          = 3;  // "4Gi" / "256Mi" / raw integer = MB
+  int32  ephemeral_gb = 4;
+  string gpu          = 5;  // empty = none ; "1×A100-40G" etc.
+  // Reserved : 6..9 for future affinity labels / placement hints.
+  reserved 6, 7, 8, 9;
+}
+
+message ListFlavorsRequest {
+  int32  limit      = 1;
+  string page_token = 2;
+}
+message ListFlavorsResponse {
+  repeated Flavor flavors        = 1;
+  string          next_page_token = 2;
+}
+
+message GetFlavorRequest  { string name = 1; }
+message GetFlavorResponse { Flavor flavor = 1; }
+
+// SetFlavor is upsert : a flavor with the given name is created or
+// replaced atomically. Catalogue history is etcd-versioned ; this
+// RPC doesn't expose revisions (the operator can read them via
+// `etcdctl get --rev=N` when an audit needs it).
+message SetFlavorRequest  { Flavor flavor = 1; }
+message SetFlavorResponse { Flavor flavor = 1; }
+
+message DeleteFlavorRequest  { string name = 1; }
+message DeleteFlavorResponse { string deleted = 1; }

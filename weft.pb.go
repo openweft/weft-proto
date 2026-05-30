@@ -10990,6 +10990,454 @@ func (x *UnmapFloatingIPResponse) GetFloatingIp() *FloatingIPInfo {
 	return nil
 }
 
+type Flavor struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Vcpu          int32                  `protobuf:"varint,2,opt,name=vcpu,proto3" json:"vcpu,omitempty"`
+	Ram           string                 `protobuf:"bytes,3,opt,name=ram,proto3" json:"ram,omitempty"` // "4Gi" / "256Mi" / raw integer = MB
+	EphemeralGb   int32                  `protobuf:"varint,4,opt,name=ephemeral_gb,json=ephemeralGb,proto3" json:"ephemeral_gb,omitempty"`
+	Gpu           string                 `protobuf:"bytes,5,opt,name=gpu,proto3" json:"gpu,omitempty"` // empty = none ; "1×A100-40G" etc.
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Flavor) Reset() {
+	*x = Flavor{}
+	mi := &file_weft_proto_msgTypes[192]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Flavor) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Flavor) ProtoMessage() {}
+
+func (x *Flavor) ProtoReflect() protoreflect.Message {
+	mi := &file_weft_proto_msgTypes[192]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Flavor.ProtoReflect.Descriptor instead.
+func (*Flavor) Descriptor() ([]byte, []int) {
+	return file_weft_proto_rawDescGZIP(), []int{192}
+}
+
+func (x *Flavor) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *Flavor) GetVcpu() int32 {
+	if x != nil {
+		return x.Vcpu
+	}
+	return 0
+}
+
+func (x *Flavor) GetRam() string {
+	if x != nil {
+		return x.Ram
+	}
+	return ""
+}
+
+func (x *Flavor) GetEphemeralGb() int32 {
+	if x != nil {
+		return x.EphemeralGb
+	}
+	return 0
+}
+
+func (x *Flavor) GetGpu() string {
+	if x != nil {
+		return x.Gpu
+	}
+	return ""
+}
+
+type ListFlavorsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Limit         int32                  `protobuf:"varint,1,opt,name=limit,proto3" json:"limit,omitempty"`
+	PageToken     string                 `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListFlavorsRequest) Reset() {
+	*x = ListFlavorsRequest{}
+	mi := &file_weft_proto_msgTypes[193]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListFlavorsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListFlavorsRequest) ProtoMessage() {}
+
+func (x *ListFlavorsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_weft_proto_msgTypes[193]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListFlavorsRequest.ProtoReflect.Descriptor instead.
+func (*ListFlavorsRequest) Descriptor() ([]byte, []int) {
+	return file_weft_proto_rawDescGZIP(), []int{193}
+}
+
+func (x *ListFlavorsRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *ListFlavorsRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+type ListFlavorsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Flavors       []*Flavor              `protobuf:"bytes,1,rep,name=flavors,proto3" json:"flavors,omitempty"`
+	NextPageToken string                 `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListFlavorsResponse) Reset() {
+	*x = ListFlavorsResponse{}
+	mi := &file_weft_proto_msgTypes[194]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListFlavorsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListFlavorsResponse) ProtoMessage() {}
+
+func (x *ListFlavorsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_weft_proto_msgTypes[194]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListFlavorsResponse.ProtoReflect.Descriptor instead.
+func (*ListFlavorsResponse) Descriptor() ([]byte, []int) {
+	return file_weft_proto_rawDescGZIP(), []int{194}
+}
+
+func (x *ListFlavorsResponse) GetFlavors() []*Flavor {
+	if x != nil {
+		return x.Flavors
+	}
+	return nil
+}
+
+func (x *ListFlavorsResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
+type GetFlavorRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetFlavorRequest) Reset() {
+	*x = GetFlavorRequest{}
+	mi := &file_weft_proto_msgTypes[195]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetFlavorRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetFlavorRequest) ProtoMessage() {}
+
+func (x *GetFlavorRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_weft_proto_msgTypes[195]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetFlavorRequest.ProtoReflect.Descriptor instead.
+func (*GetFlavorRequest) Descriptor() ([]byte, []int) {
+	return file_weft_proto_rawDescGZIP(), []int{195}
+}
+
+func (x *GetFlavorRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+type GetFlavorResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Flavor        *Flavor                `protobuf:"bytes,1,opt,name=flavor,proto3" json:"flavor,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetFlavorResponse) Reset() {
+	*x = GetFlavorResponse{}
+	mi := &file_weft_proto_msgTypes[196]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetFlavorResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetFlavorResponse) ProtoMessage() {}
+
+func (x *GetFlavorResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_weft_proto_msgTypes[196]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetFlavorResponse.ProtoReflect.Descriptor instead.
+func (*GetFlavorResponse) Descriptor() ([]byte, []int) {
+	return file_weft_proto_rawDescGZIP(), []int{196}
+}
+
+func (x *GetFlavorResponse) GetFlavor() *Flavor {
+	if x != nil {
+		return x.Flavor
+	}
+	return nil
+}
+
+// SetFlavor is upsert : a flavor with the given name is created or
+// replaced atomically. Catalogue history is etcd-versioned ; this
+// RPC doesn't expose revisions (the operator can read them via
+// `etcdctl get --rev=N` when an audit needs it).
+type SetFlavorRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Flavor        *Flavor                `protobuf:"bytes,1,opt,name=flavor,proto3" json:"flavor,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetFlavorRequest) Reset() {
+	*x = SetFlavorRequest{}
+	mi := &file_weft_proto_msgTypes[197]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetFlavorRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetFlavorRequest) ProtoMessage() {}
+
+func (x *SetFlavorRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_weft_proto_msgTypes[197]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetFlavorRequest.ProtoReflect.Descriptor instead.
+func (*SetFlavorRequest) Descriptor() ([]byte, []int) {
+	return file_weft_proto_rawDescGZIP(), []int{197}
+}
+
+func (x *SetFlavorRequest) GetFlavor() *Flavor {
+	if x != nil {
+		return x.Flavor
+	}
+	return nil
+}
+
+type SetFlavorResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Flavor        *Flavor                `protobuf:"bytes,1,opt,name=flavor,proto3" json:"flavor,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetFlavorResponse) Reset() {
+	*x = SetFlavorResponse{}
+	mi := &file_weft_proto_msgTypes[198]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetFlavorResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetFlavorResponse) ProtoMessage() {}
+
+func (x *SetFlavorResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_weft_proto_msgTypes[198]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetFlavorResponse.ProtoReflect.Descriptor instead.
+func (*SetFlavorResponse) Descriptor() ([]byte, []int) {
+	return file_weft_proto_rawDescGZIP(), []int{198}
+}
+
+func (x *SetFlavorResponse) GetFlavor() *Flavor {
+	if x != nil {
+		return x.Flavor
+	}
+	return nil
+}
+
+type DeleteFlavorRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteFlavorRequest) Reset() {
+	*x = DeleteFlavorRequest{}
+	mi := &file_weft_proto_msgTypes[199]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteFlavorRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteFlavorRequest) ProtoMessage() {}
+
+func (x *DeleteFlavorRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_weft_proto_msgTypes[199]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteFlavorRequest.ProtoReflect.Descriptor instead.
+func (*DeleteFlavorRequest) Descriptor() ([]byte, []int) {
+	return file_weft_proto_rawDescGZIP(), []int{199}
+}
+
+func (x *DeleteFlavorRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+type DeleteFlavorResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Deleted       string                 `protobuf:"bytes,1,opt,name=deleted,proto3" json:"deleted,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteFlavorResponse) Reset() {
+	*x = DeleteFlavorResponse{}
+	mi := &file_weft_proto_msgTypes[200]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteFlavorResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteFlavorResponse) ProtoMessage() {}
+
+func (x *DeleteFlavorResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_weft_proto_msgTypes[200]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteFlavorResponse.ProtoReflect.Descriptor instead.
+func (*DeleteFlavorResponse) Descriptor() ([]byte, []int) {
+	return file_weft_proto_rawDescGZIP(), []int{200}
+}
+
+func (x *DeleteFlavorResponse) GetDeleted() string {
+	if x != nil {
+		return x.Deleted
+	}
+	return ""
+}
+
 var File_weft_proto protoreflect.FileDescriptor
 
 const file_weft_proto_rawDesc = "" +
@@ -11718,13 +12166,39 @@ const file_weft_proto_rawDesc = "" +
 	"\x04uuid\x18\x01 \x01(\tR\x04uuid\"S\n" +
 	"\x17UnmapFloatingIPResponse\x128\n" +
 	"\vfloating_ip\x18\x01 \x01(\v2\x17.weft.v1.FloatingIPInfoR\n" +
-	"floatingIp*}\n" +
+	"floatingIp\"\x8f\x01\n" +
+	"\x06Flavor\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x12\n" +
+	"\x04vcpu\x18\x02 \x01(\x05R\x04vcpu\x12\x10\n" +
+	"\x03ram\x18\x03 \x01(\tR\x03ram\x12!\n" +
+	"\fephemeral_gb\x18\x04 \x01(\x05R\vephemeralGb\x12\x10\n" +
+	"\x03gpu\x18\x05 \x01(\tR\x03gpuJ\x04\b\x06\x10\aJ\x04\b\a\x10\bJ\x04\b\b\x10\tJ\x04\b\t\x10\n" +
+	"\"I\n" +
+	"\x12ListFlavorsRequest\x12\x14\n" +
+	"\x05limit\x18\x01 \x01(\x05R\x05limit\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x02 \x01(\tR\tpageToken\"h\n" +
+	"\x13ListFlavorsResponse\x12)\n" +
+	"\aflavors\x18\x01 \x03(\v2\x0f.weft.v1.FlavorR\aflavors\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"&\n" +
+	"\x10GetFlavorRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\"<\n" +
+	"\x11GetFlavorResponse\x12'\n" +
+	"\x06flavor\x18\x01 \x01(\v2\x0f.weft.v1.FlavorR\x06flavor\";\n" +
+	"\x10SetFlavorRequest\x12'\n" +
+	"\x06flavor\x18\x01 \x01(\v2\x0f.weft.v1.FlavorR\x06flavor\"<\n" +
+	"\x11SetFlavorResponse\x12'\n" +
+	"\x06flavor\x18\x01 \x01(\v2\x0f.weft.v1.FlavorR\x06flavor\")\n" +
+	"\x13DeleteFlavorRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\"0\n" +
+	"\x14DeleteFlavorResponse\x12\x18\n" +
+	"\adeleted\x18\x01 \x01(\tR\adeleted*}\n" +
 	"\aVMState\x12\x18\n" +
 	"\x14VM_STATE_UNSPECIFIED\x10\x00\x12\x18\n" +
 	"\x14VM_STATE_NOT_CREATED\x10\x01\x12\x14\n" +
 	"\x10VM_STATE_STOPPED\x10\x02\x12\x14\n" +
 	"\x10VM_STATE_RUNNING\x10\x03\x12\x12\n" +
-	"\x0eVM_STATE_ERROR\x10\x042\x9e0\n" +
+	"\x0eVM_STATE_ERROR\x10\x042\xbd2\n" +
 	"\tWeftAgent\x12<\n" +
 	"\aListVMs\x12\x17.weft.v1.ListVMsRequest\x1a\x18.weft.v1.ListVMsResponse\x12?\n" +
 	"\bVMStatus\x12\x18.weft.v1.VMStatusRequest\x1a\x19.weft.v1.VMStatusResponse\x12<\n" +
@@ -11808,7 +12282,11 @@ const file_weft_proto_rawDesc = "" +
 	"\x12AllocateFloatingIP\x12\".weft.v1.AllocateFloatingIPRequest\x1a#.weft.v1.AllocateFloatingIPResponse\x12Z\n" +
 	"\x11ReleaseFloatingIP\x12!.weft.v1.ReleaseFloatingIPRequest\x1a\".weft.v1.ReleaseFloatingIPResponse\x12N\n" +
 	"\rMapFloatingIP\x12\x1d.weft.v1.MapFloatingIPRequest\x1a\x1e.weft.v1.MapFloatingIPResponse\x12T\n" +
-	"\x0fUnmapFloatingIP\x12\x1f.weft.v1.UnmapFloatingIPRequest\x1a .weft.v1.UnmapFloatingIPResponse2N\n" +
+	"\x0fUnmapFloatingIP\x12\x1f.weft.v1.UnmapFloatingIPRequest\x1a .weft.v1.UnmapFloatingIPResponse\x12H\n" +
+	"\vListFlavors\x12\x1b.weft.v1.ListFlavorsRequest\x1a\x1c.weft.v1.ListFlavorsResponse\x12B\n" +
+	"\tGetFlavor\x12\x19.weft.v1.GetFlavorRequest\x1a\x1a.weft.v1.GetFlavorResponse\x12B\n" +
+	"\tSetFlavor\x12\x19.weft.v1.SetFlavorRequest\x1a\x1a.weft.v1.SetFlavorResponse\x12K\n" +
+	"\fDeleteFlavor\x12\x1c.weft.v1.DeleteFlavorRequest\x1a\x1d.weft.v1.DeleteFlavorResponse2N\n" +
 	"\rAgentDispatch\x12=\n" +
 	"\aConnect\x12\x15.weft.v1.AgentMessage\x1a\x17.weft.v1.ControlMessage(\x010\x01B'Z%github.com/openweft/weft-proto;weftv1b\x06proto3"
 
@@ -11825,7 +12303,7 @@ func file_weft_proto_rawDescGZIP() []byte {
 }
 
 var file_weft_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_weft_proto_msgTypes = make([]protoimpl.MessageInfo, 197)
+var file_weft_proto_msgTypes = make([]protoimpl.MessageInfo, 206)
 var file_weft_proto_goTypes = []any{
 	(VMState)(0),                                    // 0: weft.v1.VMState
 	(*VMInfo)(nil),                                  // 1: weft.v1.VMInfo
@@ -12020,11 +12498,20 @@ var file_weft_proto_goTypes = []any{
 	(*MapFloatingIPResponse)(nil),                   // 190: weft.v1.MapFloatingIPResponse
 	(*UnmapFloatingIPRequest)(nil),                  // 191: weft.v1.UnmapFloatingIPRequest
 	(*UnmapFloatingIPResponse)(nil),                 // 192: weft.v1.UnmapFloatingIPResponse
-	nil,                                             // 193: weft.v1.TimingEvent.MetaEntry
-	nil,                                             // 194: weft.v1.PlatformEvent.MetaEntry
-	nil,                                             // 195: weft.v1.HostInfo.LabelsEntry
-	nil,                                             // 196: weft.v1.RegisterHostRequest.LabelsEntry
-	nil,                                             // 197: weft.v1.SetHostLabelsRequest.LabelsEntry
+	(*Flavor)(nil),                                  // 193: weft.v1.Flavor
+	(*ListFlavorsRequest)(nil),                      // 194: weft.v1.ListFlavorsRequest
+	(*ListFlavorsResponse)(nil),                     // 195: weft.v1.ListFlavorsResponse
+	(*GetFlavorRequest)(nil),                        // 196: weft.v1.GetFlavorRequest
+	(*GetFlavorResponse)(nil),                       // 197: weft.v1.GetFlavorResponse
+	(*SetFlavorRequest)(nil),                        // 198: weft.v1.SetFlavorRequest
+	(*SetFlavorResponse)(nil),                       // 199: weft.v1.SetFlavorResponse
+	(*DeleteFlavorRequest)(nil),                     // 200: weft.v1.DeleteFlavorRequest
+	(*DeleteFlavorResponse)(nil),                    // 201: weft.v1.DeleteFlavorResponse
+	nil,                                             // 202: weft.v1.TimingEvent.MetaEntry
+	nil,                                             // 203: weft.v1.PlatformEvent.MetaEntry
+	nil,                                             // 204: weft.v1.HostInfo.LabelsEntry
+	nil,                                             // 205: weft.v1.RegisterHostRequest.LabelsEntry
+	nil,                                             // 206: weft.v1.SetHostLabelsRequest.LabelsEntry
 }
 var file_weft_proto_depIdxs = []int32{
 	0,   // 0: weft.v1.VMInfo.state:type_name -> weft.v1.VMState
@@ -12040,7 +12527,7 @@ var file_weft_proto_depIdxs = []int32{
 	24,  // 10: weft.v1.PatchImageRequest.delete_ops:type_name -> weft.v1.DiskDeleteOp
 	25,  // 11: weft.v1.PatchImageRequest.mod_ops:type_name -> weft.v1.DiskModOp
 	37,  // 12: weft.v1.ListImagesResponse.images:type_name -> weft.v1.ImageInfo
-	193, // 13: weft.v1.TimingEvent.meta:type_name -> weft.v1.TimingEvent.MetaEntry
+	202, // 13: weft.v1.TimingEvent.meta:type_name -> weft.v1.TimingEvent.MetaEntry
 	43,  // 14: weft.v1.VMTimingsResponse.events:type_name -> weft.v1.TimingEvent
 	54,  // 15: weft.v1.ListUsersResponse.users:type_name -> weft.v1.UserInfo
 	54,  // 16: weft.v1.GetUserResponse.user:type_name -> weft.v1.UserInfo
@@ -12065,16 +12552,16 @@ var file_weft_proto_depIdxs = []int32{
 	92,  // 35: weft.v1.ResizeVolumeResponse.volume:type_name -> weft.v1.VolumeInfo
 	92,  // 36: weft.v1.AttachVolumeResponse.volume:type_name -> weft.v1.VolumeInfo
 	92,  // 37: weft.v1.DetachVolumeResponse.volume:type_name -> weft.v1.VolumeInfo
-	194, // 38: weft.v1.PlatformEvent.meta:type_name -> weft.v1.PlatformEvent.MetaEntry
+	203, // 38: weft.v1.PlatformEvent.meta:type_name -> weft.v1.PlatformEvent.MetaEntry
 	111, // 39: weft.v1.RegisterMicroVMRequest.shares:type_name -> weft.v1.MicroVMShare
 	114, // 40: weft.v1.ShareMount.cubefs:type_name -> weft.v1.CubeFSMount
 	115, // 41: weft.v1.PublishShareToProjectRequest.mount:type_name -> weft.v1.ShareMount
-	195, // 42: weft.v1.HostInfo.labels:type_name -> weft.v1.HostInfo.LabelsEntry
-	196, // 43: weft.v1.RegisterHostRequest.labels:type_name -> weft.v1.RegisterHostRequest.LabelsEntry
+	204, // 42: weft.v1.HostInfo.labels:type_name -> weft.v1.HostInfo.LabelsEntry
+	205, // 43: weft.v1.RegisterHostRequest.labels:type_name -> weft.v1.RegisterHostRequest.LabelsEntry
 	118, // 44: weft.v1.RegisterHostResponse.host:type_name -> weft.v1.HostInfo
 	118, // 45: weft.v1.ListHostsResponse.hosts:type_name -> weft.v1.HostInfo
 	118, // 46: weft.v1.GetHostResponse.host:type_name -> weft.v1.HostInfo
-	197, // 47: weft.v1.SetHostLabelsRequest.labels:type_name -> weft.v1.SetHostLabelsRequest.LabelsEntry
+	206, // 47: weft.v1.SetHostLabelsRequest.labels:type_name -> weft.v1.SetHostLabelsRequest.LabelsEntry
 	135, // 48: weft.v1.AgentMessage.hello:type_name -> weft.v1.AgentHello
 	138, // 49: weft.v1.AgentMessage.pong:type_name -> weft.v1.AgentPong
 	140, // 50: weft.v1.AgentMessage.reply:type_name -> weft.v1.DriverReply
@@ -12116,167 +12603,179 @@ var file_weft_proto_depIdxs = []int32{
 	182, // 86: weft.v1.AllocateFloatingIPResponse.floating_ip:type_name -> weft.v1.FloatingIPInfo
 	182, // 87: weft.v1.MapFloatingIPResponse.floating_ip:type_name -> weft.v1.FloatingIPInfo
 	182, // 88: weft.v1.UnmapFloatingIPResponse.floating_ip:type_name -> weft.v1.FloatingIPInfo
-	11,  // 89: weft.v1.WeftAgent.ListVMs:input_type -> weft.v1.ListVMsRequest
-	17,  // 90: weft.v1.WeftAgent.VMStatus:input_type -> weft.v1.VMStatusRequest
-	13,  // 91: weft.v1.WeftAgent.StartVM:input_type -> weft.v1.StartVMRequest
-	15,  // 92: weft.v1.WeftAgent.StopVM:input_type -> weft.v1.StopVMRequest
-	19,  // 93: weft.v1.WeftAgent.CreateVM:input_type -> weft.v1.CreateVMRequest
-	21,  // 94: weft.v1.WeftAgent.DeleteVM:input_type -> weft.v1.DeleteVMRequest
-	26,  // 95: weft.v1.WeftAgent.ProvisionVM:input_type -> weft.v1.ProvisionVMRequest
-	28,  // 96: weft.v1.WeftAgent.DeprovisionVM:input_type -> weft.v1.DeprovisionVMRequest
-	30,  // 97: weft.v1.WeftAgent.PullImages:input_type -> weft.v1.PullImagesRequest
-	32,  // 98: weft.v1.WeftAgent.PullImage:input_type -> weft.v1.PullImageRequest
-	34,  // 99: weft.v1.WeftAgent.PatchImage:input_type -> weft.v1.PatchImageRequest
-	36,  // 100: weft.v1.WeftAgent.ListImages:input_type -> weft.v1.ListImagesRequest
-	39,  // 101: weft.v1.WeftAgent.CleanImages:input_type -> weft.v1.CleanImagesRequest
-	41,  // 102: weft.v1.WeftAgent.WaitVM:input_type -> weft.v1.WaitVMRequest
-	112, // 103: weft.v1.WeftAgent.RegisterMicroVM:input_type -> weft.v1.RegisterMicroVMRequest
-	44,  // 104: weft.v1.WeftAgent.VMTimings:input_type -> weft.v1.VMTimingsRequest
-	46,  // 105: weft.v1.WeftAgent.VMLogs:input_type -> weft.v1.VMLogsRequest
-	3,   // 106: weft.v1.WeftAgent.ListProjects:input_type -> weft.v1.ListProjectsRequest
-	5,   // 107: weft.v1.WeftAgent.CreateProject:input_type -> weft.v1.CreateProjectRequest
-	7,   // 108: weft.v1.WeftAgent.RenameProject:input_type -> weft.v1.RenameProjectRequest
-	9,   // 109: weft.v1.WeftAgent.DeleteProject:input_type -> weft.v1.DeleteProjectRequest
-	48,  // 110: weft.v1.WeftAgent.AddProjectMember:input_type -> weft.v1.AddProjectMemberRequest
-	50,  // 111: weft.v1.WeftAgent.RemoveProjectMember:input_type -> weft.v1.RemoveProjectMemberRequest
-	52,  // 112: weft.v1.WeftAgent.ListProjectMembers:input_type -> weft.v1.ListProjectMembersRequest
-	55,  // 113: weft.v1.WeftAgent.ListUsers:input_type -> weft.v1.ListUsersRequest
-	57,  // 114: weft.v1.WeftAgent.GetUser:input_type -> weft.v1.GetUserRequest
-	59,  // 115: weft.v1.WeftAgent.Me:input_type -> weft.v1.MeRequest
-	61,  // 116: weft.v1.WeftAgent.SetUserDisplayName:input_type -> weft.v1.SetUserDisplayNameRequest
-	63,  // 117: weft.v1.WeftAgent.DeleteUser:input_type -> weft.v1.DeleteUserRequest
-	66,  // 118: weft.v1.WeftAgent.ListNetworks:input_type -> weft.v1.ListNetworksRequest
-	68,  // 119: weft.v1.WeftAgent.CreateNetwork:input_type -> weft.v1.CreateNetworkRequest
-	70,  // 120: weft.v1.WeftAgent.RenameNetwork:input_type -> weft.v1.RenameNetworkRequest
-	72,  // 121: weft.v1.WeftAgent.SetNetworkDNS:input_type -> weft.v1.SetNetworkDNSRequest
-	74,  // 122: weft.v1.WeftAgent.DeleteNetwork:input_type -> weft.v1.DeleteNetworkRequest
-	76,  // 123: weft.v1.WeftAgent.SetNetworkDefaultSecurityGroups:input_type -> weft.v1.SetNetworkDefaultSecurityGroupsRequest
-	80,  // 124: weft.v1.WeftAgent.ListSecurityGroups:input_type -> weft.v1.ListSecurityGroupsRequest
-	82,  // 125: weft.v1.WeftAgent.CreateSecurityGroup:input_type -> weft.v1.CreateSecurityGroupRequest
-	84,  // 126: weft.v1.WeftAgent.RenameSecurityGroup:input_type -> weft.v1.RenameSecurityGroupRequest
-	86,  // 127: weft.v1.WeftAgent.SetSecurityGroupDescription:input_type -> weft.v1.SetSecurityGroupDescriptionRequest
-	88,  // 128: weft.v1.WeftAgent.SetSecurityGroupRules:input_type -> weft.v1.SetSecurityGroupRulesRequest
-	90,  // 129: weft.v1.WeftAgent.DeleteSecurityGroup:input_type -> weft.v1.DeleteSecurityGroupRequest
-	93,  // 130: weft.v1.WeftAgent.ListVolumes:input_type -> weft.v1.ListVolumesRequest
-	95,  // 131: weft.v1.WeftAgent.CreateVolume:input_type -> weft.v1.CreateVolumeRequest
-	97,  // 132: weft.v1.WeftAgent.RenameVolume:input_type -> weft.v1.RenameVolumeRequest
-	99,  // 133: weft.v1.WeftAgent.ResizeVolume:input_type -> weft.v1.ResizeVolumeRequest
-	101, // 134: weft.v1.WeftAgent.AttachVolume:input_type -> weft.v1.AttachVolumeRequest
-	103, // 135: weft.v1.WeftAgent.DetachVolume:input_type -> weft.v1.DetachVolumeRequest
-	105, // 136: weft.v1.WeftAgent.DeleteVolume:input_type -> weft.v1.DeleteVolumeRequest
-	108, // 137: weft.v1.WeftAgent.WatchEvents:input_type -> weft.v1.WatchEventsRequest
-	109, // 138: weft.v1.WeftAgent.RenderNATSAuthorization:input_type -> weft.v1.RenderNATSAuthorizationRequest
-	119, // 139: weft.v1.WeftAgent.RegisterHost:input_type -> weft.v1.RegisterHostRequest
-	121, // 140: weft.v1.WeftAgent.ListHosts:input_type -> weft.v1.ListHostsRequest
-	123, // 141: weft.v1.WeftAgent.GetHost:input_type -> weft.v1.GetHostRequest
-	125, // 142: weft.v1.WeftAgent.HeartbeatHost:input_type -> weft.v1.HeartbeatHostRequest
-	127, // 143: weft.v1.WeftAgent.SetHostState:input_type -> weft.v1.SetHostStateRequest
-	129, // 144: weft.v1.WeftAgent.SetHostLabels:input_type -> weft.v1.SetHostLabelsRequest
-	131, // 145: weft.v1.WeftAgent.DeleteHost:input_type -> weft.v1.DeleteHostRequest
-	116, // 146: weft.v1.WeftAgent.PublishShareToProject:input_type -> weft.v1.PublishShareToProjectRequest
-	152, // 147: weft.v1.WeftAgent.ListTenants:input_type -> weft.v1.ListTenantsRequest
-	154, // 148: weft.v1.WeftAgent.CreateTenant:input_type -> weft.v1.CreateTenantRequest
-	156, // 149: weft.v1.WeftAgent.DeleteTenant:input_type -> weft.v1.DeleteTenantRequest
-	158, // 150: weft.v1.WeftAgent.AddTenantAdmin:input_type -> weft.v1.AddTenantAdminRequest
-	160, // 151: weft.v1.WeftAgent.RemoveTenantAdmin:input_type -> weft.v1.RemoveTenantAdminRequest
-	162, // 152: weft.v1.WeftAgent.AddTenantMember:input_type -> weft.v1.AddTenantMemberRequest
-	164, // 153: weft.v1.WeftAgent.RemoveTenantMember:input_type -> weft.v1.RemoveTenantMemberRequest
-	167, // 154: weft.v1.WeftAgent.GetTenantQuota:input_type -> weft.v1.GetTenantQuotaRequest
-	169, // 155: weft.v1.WeftAgent.SetTenantQuota:input_type -> weft.v1.SetTenantQuotaRequest
-	171, // 156: weft.v1.WeftAgent.GetProjectQuota:input_type -> weft.v1.GetProjectQuotaRequest
-	173, // 157: weft.v1.WeftAgent.SetProjectQuota:input_type -> weft.v1.SetProjectQuotaRequest
-	176, // 158: weft.v1.WeftAgent.ListShares:input_type -> weft.v1.ListSharesRequest
-	178, // 159: weft.v1.WeftAgent.CreateShare:input_type -> weft.v1.CreateShareRequest
-	180, // 160: weft.v1.WeftAgent.DeleteShare:input_type -> weft.v1.DeleteShareRequest
-	183, // 161: weft.v1.WeftAgent.ListFloatingIPs:input_type -> weft.v1.ListFloatingIPsRequest
-	185, // 162: weft.v1.WeftAgent.AllocateFloatingIP:input_type -> weft.v1.AllocateFloatingIPRequest
-	187, // 163: weft.v1.WeftAgent.ReleaseFloatingIP:input_type -> weft.v1.ReleaseFloatingIPRequest
-	189, // 164: weft.v1.WeftAgent.MapFloatingIP:input_type -> weft.v1.MapFloatingIPRequest
-	191, // 165: weft.v1.WeftAgent.UnmapFloatingIP:input_type -> weft.v1.UnmapFloatingIPRequest
-	133, // 166: weft.v1.AgentDispatch.Connect:input_type -> weft.v1.AgentMessage
-	12,  // 167: weft.v1.WeftAgent.ListVMs:output_type -> weft.v1.ListVMsResponse
-	18,  // 168: weft.v1.WeftAgent.VMStatus:output_type -> weft.v1.VMStatusResponse
-	14,  // 169: weft.v1.WeftAgent.StartVM:output_type -> weft.v1.StartVMResponse
-	16,  // 170: weft.v1.WeftAgent.StopVM:output_type -> weft.v1.StopVMResponse
-	20,  // 171: weft.v1.WeftAgent.CreateVM:output_type -> weft.v1.CreateVMResponse
-	22,  // 172: weft.v1.WeftAgent.DeleteVM:output_type -> weft.v1.DeleteVMResponse
-	27,  // 173: weft.v1.WeftAgent.ProvisionVM:output_type -> weft.v1.ProvisionVMResponse
-	29,  // 174: weft.v1.WeftAgent.DeprovisionVM:output_type -> weft.v1.DeprovisionVMResponse
-	31,  // 175: weft.v1.WeftAgent.PullImages:output_type -> weft.v1.PullImagesResponse
-	33,  // 176: weft.v1.WeftAgent.PullImage:output_type -> weft.v1.PullImageResponse
-	35,  // 177: weft.v1.WeftAgent.PatchImage:output_type -> weft.v1.PatchImageResponse
-	38,  // 178: weft.v1.WeftAgent.ListImages:output_type -> weft.v1.ListImagesResponse
-	40,  // 179: weft.v1.WeftAgent.CleanImages:output_type -> weft.v1.CleanImagesResponse
-	42,  // 180: weft.v1.WeftAgent.WaitVM:output_type -> weft.v1.WaitVMResponse
-	113, // 181: weft.v1.WeftAgent.RegisterMicroVM:output_type -> weft.v1.RegisterMicroVMResponse
-	45,  // 182: weft.v1.WeftAgent.VMTimings:output_type -> weft.v1.VMTimingsResponse
-	47,  // 183: weft.v1.WeftAgent.VMLogs:output_type -> weft.v1.VMLogsResponse
-	4,   // 184: weft.v1.WeftAgent.ListProjects:output_type -> weft.v1.ListProjectsResponse
-	6,   // 185: weft.v1.WeftAgent.CreateProject:output_type -> weft.v1.CreateProjectResponse
-	8,   // 186: weft.v1.WeftAgent.RenameProject:output_type -> weft.v1.RenameProjectResponse
-	10,  // 187: weft.v1.WeftAgent.DeleteProject:output_type -> weft.v1.DeleteProjectResponse
-	49,  // 188: weft.v1.WeftAgent.AddProjectMember:output_type -> weft.v1.AddProjectMemberResponse
-	51,  // 189: weft.v1.WeftAgent.RemoveProjectMember:output_type -> weft.v1.RemoveProjectMemberResponse
-	53,  // 190: weft.v1.WeftAgent.ListProjectMembers:output_type -> weft.v1.ListProjectMembersResponse
-	56,  // 191: weft.v1.WeftAgent.ListUsers:output_type -> weft.v1.ListUsersResponse
-	58,  // 192: weft.v1.WeftAgent.GetUser:output_type -> weft.v1.GetUserResponse
-	60,  // 193: weft.v1.WeftAgent.Me:output_type -> weft.v1.MeResponse
-	62,  // 194: weft.v1.WeftAgent.SetUserDisplayName:output_type -> weft.v1.SetUserDisplayNameResponse
-	64,  // 195: weft.v1.WeftAgent.DeleteUser:output_type -> weft.v1.DeleteUserResponse
-	67,  // 196: weft.v1.WeftAgent.ListNetworks:output_type -> weft.v1.ListNetworksResponse
-	69,  // 197: weft.v1.WeftAgent.CreateNetwork:output_type -> weft.v1.CreateNetworkResponse
-	71,  // 198: weft.v1.WeftAgent.RenameNetwork:output_type -> weft.v1.RenameNetworkResponse
-	73,  // 199: weft.v1.WeftAgent.SetNetworkDNS:output_type -> weft.v1.SetNetworkDNSResponse
-	75,  // 200: weft.v1.WeftAgent.DeleteNetwork:output_type -> weft.v1.DeleteNetworkResponse
-	77,  // 201: weft.v1.WeftAgent.SetNetworkDefaultSecurityGroups:output_type -> weft.v1.SetNetworkDefaultSecurityGroupsResponse
-	81,  // 202: weft.v1.WeftAgent.ListSecurityGroups:output_type -> weft.v1.ListSecurityGroupsResponse
-	83,  // 203: weft.v1.WeftAgent.CreateSecurityGroup:output_type -> weft.v1.CreateSecurityGroupResponse
-	85,  // 204: weft.v1.WeftAgent.RenameSecurityGroup:output_type -> weft.v1.RenameSecurityGroupResponse
-	87,  // 205: weft.v1.WeftAgent.SetSecurityGroupDescription:output_type -> weft.v1.SetSecurityGroupDescriptionResponse
-	89,  // 206: weft.v1.WeftAgent.SetSecurityGroupRules:output_type -> weft.v1.SetSecurityGroupRulesResponse
-	91,  // 207: weft.v1.WeftAgent.DeleteSecurityGroup:output_type -> weft.v1.DeleteSecurityGroupResponse
-	94,  // 208: weft.v1.WeftAgent.ListVolumes:output_type -> weft.v1.ListVolumesResponse
-	96,  // 209: weft.v1.WeftAgent.CreateVolume:output_type -> weft.v1.CreateVolumeResponse
-	98,  // 210: weft.v1.WeftAgent.RenameVolume:output_type -> weft.v1.RenameVolumeResponse
-	100, // 211: weft.v1.WeftAgent.ResizeVolume:output_type -> weft.v1.ResizeVolumeResponse
-	102, // 212: weft.v1.WeftAgent.AttachVolume:output_type -> weft.v1.AttachVolumeResponse
-	104, // 213: weft.v1.WeftAgent.DetachVolume:output_type -> weft.v1.DetachVolumeResponse
-	106, // 214: weft.v1.WeftAgent.DeleteVolume:output_type -> weft.v1.DeleteVolumeResponse
-	107, // 215: weft.v1.WeftAgent.WatchEvents:output_type -> weft.v1.PlatformEvent
-	110, // 216: weft.v1.WeftAgent.RenderNATSAuthorization:output_type -> weft.v1.RenderNATSAuthorizationResponse
-	120, // 217: weft.v1.WeftAgent.RegisterHost:output_type -> weft.v1.RegisterHostResponse
-	122, // 218: weft.v1.WeftAgent.ListHosts:output_type -> weft.v1.ListHostsResponse
-	124, // 219: weft.v1.WeftAgent.GetHost:output_type -> weft.v1.GetHostResponse
-	126, // 220: weft.v1.WeftAgent.HeartbeatHost:output_type -> weft.v1.HeartbeatHostResponse
-	128, // 221: weft.v1.WeftAgent.SetHostState:output_type -> weft.v1.SetHostStateResponse
-	130, // 222: weft.v1.WeftAgent.SetHostLabels:output_type -> weft.v1.SetHostLabelsResponse
-	132, // 223: weft.v1.WeftAgent.DeleteHost:output_type -> weft.v1.DeleteHostResponse
-	117, // 224: weft.v1.WeftAgent.PublishShareToProject:output_type -> weft.v1.PublishShareToProjectResponse
-	153, // 225: weft.v1.WeftAgent.ListTenants:output_type -> weft.v1.ListTenantsResponse
-	155, // 226: weft.v1.WeftAgent.CreateTenant:output_type -> weft.v1.CreateTenantResponse
-	157, // 227: weft.v1.WeftAgent.DeleteTenant:output_type -> weft.v1.DeleteTenantResponse
-	159, // 228: weft.v1.WeftAgent.AddTenantAdmin:output_type -> weft.v1.AddTenantAdminResponse
-	161, // 229: weft.v1.WeftAgent.RemoveTenantAdmin:output_type -> weft.v1.RemoveTenantAdminResponse
-	163, // 230: weft.v1.WeftAgent.AddTenantMember:output_type -> weft.v1.AddTenantMemberResponse
-	165, // 231: weft.v1.WeftAgent.RemoveTenantMember:output_type -> weft.v1.RemoveTenantMemberResponse
-	168, // 232: weft.v1.WeftAgent.GetTenantQuota:output_type -> weft.v1.GetTenantQuotaResponse
-	170, // 233: weft.v1.WeftAgent.SetTenantQuota:output_type -> weft.v1.SetTenantQuotaResponse
-	172, // 234: weft.v1.WeftAgent.GetProjectQuota:output_type -> weft.v1.GetProjectQuotaResponse
-	174, // 235: weft.v1.WeftAgent.SetProjectQuota:output_type -> weft.v1.SetProjectQuotaResponse
-	177, // 236: weft.v1.WeftAgent.ListShares:output_type -> weft.v1.ListSharesResponse
-	179, // 237: weft.v1.WeftAgent.CreateShare:output_type -> weft.v1.CreateShareResponse
-	181, // 238: weft.v1.WeftAgent.DeleteShare:output_type -> weft.v1.DeleteShareResponse
-	184, // 239: weft.v1.WeftAgent.ListFloatingIPs:output_type -> weft.v1.ListFloatingIPsResponse
-	186, // 240: weft.v1.WeftAgent.AllocateFloatingIP:output_type -> weft.v1.AllocateFloatingIPResponse
-	188, // 241: weft.v1.WeftAgent.ReleaseFloatingIP:output_type -> weft.v1.ReleaseFloatingIPResponse
-	190, // 242: weft.v1.WeftAgent.MapFloatingIP:output_type -> weft.v1.MapFloatingIPResponse
-	192, // 243: weft.v1.WeftAgent.UnmapFloatingIP:output_type -> weft.v1.UnmapFloatingIPResponse
-	134, // 244: weft.v1.AgentDispatch.Connect:output_type -> weft.v1.ControlMessage
-	167, // [167:245] is the sub-list for method output_type
-	89,  // [89:167] is the sub-list for method input_type
-	89,  // [89:89] is the sub-list for extension type_name
-	89,  // [89:89] is the sub-list for extension extendee
-	0,   // [0:89] is the sub-list for field type_name
+	193, // 89: weft.v1.ListFlavorsResponse.flavors:type_name -> weft.v1.Flavor
+	193, // 90: weft.v1.GetFlavorResponse.flavor:type_name -> weft.v1.Flavor
+	193, // 91: weft.v1.SetFlavorRequest.flavor:type_name -> weft.v1.Flavor
+	193, // 92: weft.v1.SetFlavorResponse.flavor:type_name -> weft.v1.Flavor
+	11,  // 93: weft.v1.WeftAgent.ListVMs:input_type -> weft.v1.ListVMsRequest
+	17,  // 94: weft.v1.WeftAgent.VMStatus:input_type -> weft.v1.VMStatusRequest
+	13,  // 95: weft.v1.WeftAgent.StartVM:input_type -> weft.v1.StartVMRequest
+	15,  // 96: weft.v1.WeftAgent.StopVM:input_type -> weft.v1.StopVMRequest
+	19,  // 97: weft.v1.WeftAgent.CreateVM:input_type -> weft.v1.CreateVMRequest
+	21,  // 98: weft.v1.WeftAgent.DeleteVM:input_type -> weft.v1.DeleteVMRequest
+	26,  // 99: weft.v1.WeftAgent.ProvisionVM:input_type -> weft.v1.ProvisionVMRequest
+	28,  // 100: weft.v1.WeftAgent.DeprovisionVM:input_type -> weft.v1.DeprovisionVMRequest
+	30,  // 101: weft.v1.WeftAgent.PullImages:input_type -> weft.v1.PullImagesRequest
+	32,  // 102: weft.v1.WeftAgent.PullImage:input_type -> weft.v1.PullImageRequest
+	34,  // 103: weft.v1.WeftAgent.PatchImage:input_type -> weft.v1.PatchImageRequest
+	36,  // 104: weft.v1.WeftAgent.ListImages:input_type -> weft.v1.ListImagesRequest
+	39,  // 105: weft.v1.WeftAgent.CleanImages:input_type -> weft.v1.CleanImagesRequest
+	41,  // 106: weft.v1.WeftAgent.WaitVM:input_type -> weft.v1.WaitVMRequest
+	112, // 107: weft.v1.WeftAgent.RegisterMicroVM:input_type -> weft.v1.RegisterMicroVMRequest
+	44,  // 108: weft.v1.WeftAgent.VMTimings:input_type -> weft.v1.VMTimingsRequest
+	46,  // 109: weft.v1.WeftAgent.VMLogs:input_type -> weft.v1.VMLogsRequest
+	3,   // 110: weft.v1.WeftAgent.ListProjects:input_type -> weft.v1.ListProjectsRequest
+	5,   // 111: weft.v1.WeftAgent.CreateProject:input_type -> weft.v1.CreateProjectRequest
+	7,   // 112: weft.v1.WeftAgent.RenameProject:input_type -> weft.v1.RenameProjectRequest
+	9,   // 113: weft.v1.WeftAgent.DeleteProject:input_type -> weft.v1.DeleteProjectRequest
+	48,  // 114: weft.v1.WeftAgent.AddProjectMember:input_type -> weft.v1.AddProjectMemberRequest
+	50,  // 115: weft.v1.WeftAgent.RemoveProjectMember:input_type -> weft.v1.RemoveProjectMemberRequest
+	52,  // 116: weft.v1.WeftAgent.ListProjectMembers:input_type -> weft.v1.ListProjectMembersRequest
+	55,  // 117: weft.v1.WeftAgent.ListUsers:input_type -> weft.v1.ListUsersRequest
+	57,  // 118: weft.v1.WeftAgent.GetUser:input_type -> weft.v1.GetUserRequest
+	59,  // 119: weft.v1.WeftAgent.Me:input_type -> weft.v1.MeRequest
+	61,  // 120: weft.v1.WeftAgent.SetUserDisplayName:input_type -> weft.v1.SetUserDisplayNameRequest
+	63,  // 121: weft.v1.WeftAgent.DeleteUser:input_type -> weft.v1.DeleteUserRequest
+	66,  // 122: weft.v1.WeftAgent.ListNetworks:input_type -> weft.v1.ListNetworksRequest
+	68,  // 123: weft.v1.WeftAgent.CreateNetwork:input_type -> weft.v1.CreateNetworkRequest
+	70,  // 124: weft.v1.WeftAgent.RenameNetwork:input_type -> weft.v1.RenameNetworkRequest
+	72,  // 125: weft.v1.WeftAgent.SetNetworkDNS:input_type -> weft.v1.SetNetworkDNSRequest
+	74,  // 126: weft.v1.WeftAgent.DeleteNetwork:input_type -> weft.v1.DeleteNetworkRequest
+	76,  // 127: weft.v1.WeftAgent.SetNetworkDefaultSecurityGroups:input_type -> weft.v1.SetNetworkDefaultSecurityGroupsRequest
+	80,  // 128: weft.v1.WeftAgent.ListSecurityGroups:input_type -> weft.v1.ListSecurityGroupsRequest
+	82,  // 129: weft.v1.WeftAgent.CreateSecurityGroup:input_type -> weft.v1.CreateSecurityGroupRequest
+	84,  // 130: weft.v1.WeftAgent.RenameSecurityGroup:input_type -> weft.v1.RenameSecurityGroupRequest
+	86,  // 131: weft.v1.WeftAgent.SetSecurityGroupDescription:input_type -> weft.v1.SetSecurityGroupDescriptionRequest
+	88,  // 132: weft.v1.WeftAgent.SetSecurityGroupRules:input_type -> weft.v1.SetSecurityGroupRulesRequest
+	90,  // 133: weft.v1.WeftAgent.DeleteSecurityGroup:input_type -> weft.v1.DeleteSecurityGroupRequest
+	93,  // 134: weft.v1.WeftAgent.ListVolumes:input_type -> weft.v1.ListVolumesRequest
+	95,  // 135: weft.v1.WeftAgent.CreateVolume:input_type -> weft.v1.CreateVolumeRequest
+	97,  // 136: weft.v1.WeftAgent.RenameVolume:input_type -> weft.v1.RenameVolumeRequest
+	99,  // 137: weft.v1.WeftAgent.ResizeVolume:input_type -> weft.v1.ResizeVolumeRequest
+	101, // 138: weft.v1.WeftAgent.AttachVolume:input_type -> weft.v1.AttachVolumeRequest
+	103, // 139: weft.v1.WeftAgent.DetachVolume:input_type -> weft.v1.DetachVolumeRequest
+	105, // 140: weft.v1.WeftAgent.DeleteVolume:input_type -> weft.v1.DeleteVolumeRequest
+	108, // 141: weft.v1.WeftAgent.WatchEvents:input_type -> weft.v1.WatchEventsRequest
+	109, // 142: weft.v1.WeftAgent.RenderNATSAuthorization:input_type -> weft.v1.RenderNATSAuthorizationRequest
+	119, // 143: weft.v1.WeftAgent.RegisterHost:input_type -> weft.v1.RegisterHostRequest
+	121, // 144: weft.v1.WeftAgent.ListHosts:input_type -> weft.v1.ListHostsRequest
+	123, // 145: weft.v1.WeftAgent.GetHost:input_type -> weft.v1.GetHostRequest
+	125, // 146: weft.v1.WeftAgent.HeartbeatHost:input_type -> weft.v1.HeartbeatHostRequest
+	127, // 147: weft.v1.WeftAgent.SetHostState:input_type -> weft.v1.SetHostStateRequest
+	129, // 148: weft.v1.WeftAgent.SetHostLabels:input_type -> weft.v1.SetHostLabelsRequest
+	131, // 149: weft.v1.WeftAgent.DeleteHost:input_type -> weft.v1.DeleteHostRequest
+	116, // 150: weft.v1.WeftAgent.PublishShareToProject:input_type -> weft.v1.PublishShareToProjectRequest
+	152, // 151: weft.v1.WeftAgent.ListTenants:input_type -> weft.v1.ListTenantsRequest
+	154, // 152: weft.v1.WeftAgent.CreateTenant:input_type -> weft.v1.CreateTenantRequest
+	156, // 153: weft.v1.WeftAgent.DeleteTenant:input_type -> weft.v1.DeleteTenantRequest
+	158, // 154: weft.v1.WeftAgent.AddTenantAdmin:input_type -> weft.v1.AddTenantAdminRequest
+	160, // 155: weft.v1.WeftAgent.RemoveTenantAdmin:input_type -> weft.v1.RemoveTenantAdminRequest
+	162, // 156: weft.v1.WeftAgent.AddTenantMember:input_type -> weft.v1.AddTenantMemberRequest
+	164, // 157: weft.v1.WeftAgent.RemoveTenantMember:input_type -> weft.v1.RemoveTenantMemberRequest
+	167, // 158: weft.v1.WeftAgent.GetTenantQuota:input_type -> weft.v1.GetTenantQuotaRequest
+	169, // 159: weft.v1.WeftAgent.SetTenantQuota:input_type -> weft.v1.SetTenantQuotaRequest
+	171, // 160: weft.v1.WeftAgent.GetProjectQuota:input_type -> weft.v1.GetProjectQuotaRequest
+	173, // 161: weft.v1.WeftAgent.SetProjectQuota:input_type -> weft.v1.SetProjectQuotaRequest
+	176, // 162: weft.v1.WeftAgent.ListShares:input_type -> weft.v1.ListSharesRequest
+	178, // 163: weft.v1.WeftAgent.CreateShare:input_type -> weft.v1.CreateShareRequest
+	180, // 164: weft.v1.WeftAgent.DeleteShare:input_type -> weft.v1.DeleteShareRequest
+	183, // 165: weft.v1.WeftAgent.ListFloatingIPs:input_type -> weft.v1.ListFloatingIPsRequest
+	185, // 166: weft.v1.WeftAgent.AllocateFloatingIP:input_type -> weft.v1.AllocateFloatingIPRequest
+	187, // 167: weft.v1.WeftAgent.ReleaseFloatingIP:input_type -> weft.v1.ReleaseFloatingIPRequest
+	189, // 168: weft.v1.WeftAgent.MapFloatingIP:input_type -> weft.v1.MapFloatingIPRequest
+	191, // 169: weft.v1.WeftAgent.UnmapFloatingIP:input_type -> weft.v1.UnmapFloatingIPRequest
+	194, // 170: weft.v1.WeftAgent.ListFlavors:input_type -> weft.v1.ListFlavorsRequest
+	196, // 171: weft.v1.WeftAgent.GetFlavor:input_type -> weft.v1.GetFlavorRequest
+	198, // 172: weft.v1.WeftAgent.SetFlavor:input_type -> weft.v1.SetFlavorRequest
+	200, // 173: weft.v1.WeftAgent.DeleteFlavor:input_type -> weft.v1.DeleteFlavorRequest
+	133, // 174: weft.v1.AgentDispatch.Connect:input_type -> weft.v1.AgentMessage
+	12,  // 175: weft.v1.WeftAgent.ListVMs:output_type -> weft.v1.ListVMsResponse
+	18,  // 176: weft.v1.WeftAgent.VMStatus:output_type -> weft.v1.VMStatusResponse
+	14,  // 177: weft.v1.WeftAgent.StartVM:output_type -> weft.v1.StartVMResponse
+	16,  // 178: weft.v1.WeftAgent.StopVM:output_type -> weft.v1.StopVMResponse
+	20,  // 179: weft.v1.WeftAgent.CreateVM:output_type -> weft.v1.CreateVMResponse
+	22,  // 180: weft.v1.WeftAgent.DeleteVM:output_type -> weft.v1.DeleteVMResponse
+	27,  // 181: weft.v1.WeftAgent.ProvisionVM:output_type -> weft.v1.ProvisionVMResponse
+	29,  // 182: weft.v1.WeftAgent.DeprovisionVM:output_type -> weft.v1.DeprovisionVMResponse
+	31,  // 183: weft.v1.WeftAgent.PullImages:output_type -> weft.v1.PullImagesResponse
+	33,  // 184: weft.v1.WeftAgent.PullImage:output_type -> weft.v1.PullImageResponse
+	35,  // 185: weft.v1.WeftAgent.PatchImage:output_type -> weft.v1.PatchImageResponse
+	38,  // 186: weft.v1.WeftAgent.ListImages:output_type -> weft.v1.ListImagesResponse
+	40,  // 187: weft.v1.WeftAgent.CleanImages:output_type -> weft.v1.CleanImagesResponse
+	42,  // 188: weft.v1.WeftAgent.WaitVM:output_type -> weft.v1.WaitVMResponse
+	113, // 189: weft.v1.WeftAgent.RegisterMicroVM:output_type -> weft.v1.RegisterMicroVMResponse
+	45,  // 190: weft.v1.WeftAgent.VMTimings:output_type -> weft.v1.VMTimingsResponse
+	47,  // 191: weft.v1.WeftAgent.VMLogs:output_type -> weft.v1.VMLogsResponse
+	4,   // 192: weft.v1.WeftAgent.ListProjects:output_type -> weft.v1.ListProjectsResponse
+	6,   // 193: weft.v1.WeftAgent.CreateProject:output_type -> weft.v1.CreateProjectResponse
+	8,   // 194: weft.v1.WeftAgent.RenameProject:output_type -> weft.v1.RenameProjectResponse
+	10,  // 195: weft.v1.WeftAgent.DeleteProject:output_type -> weft.v1.DeleteProjectResponse
+	49,  // 196: weft.v1.WeftAgent.AddProjectMember:output_type -> weft.v1.AddProjectMemberResponse
+	51,  // 197: weft.v1.WeftAgent.RemoveProjectMember:output_type -> weft.v1.RemoveProjectMemberResponse
+	53,  // 198: weft.v1.WeftAgent.ListProjectMembers:output_type -> weft.v1.ListProjectMembersResponse
+	56,  // 199: weft.v1.WeftAgent.ListUsers:output_type -> weft.v1.ListUsersResponse
+	58,  // 200: weft.v1.WeftAgent.GetUser:output_type -> weft.v1.GetUserResponse
+	60,  // 201: weft.v1.WeftAgent.Me:output_type -> weft.v1.MeResponse
+	62,  // 202: weft.v1.WeftAgent.SetUserDisplayName:output_type -> weft.v1.SetUserDisplayNameResponse
+	64,  // 203: weft.v1.WeftAgent.DeleteUser:output_type -> weft.v1.DeleteUserResponse
+	67,  // 204: weft.v1.WeftAgent.ListNetworks:output_type -> weft.v1.ListNetworksResponse
+	69,  // 205: weft.v1.WeftAgent.CreateNetwork:output_type -> weft.v1.CreateNetworkResponse
+	71,  // 206: weft.v1.WeftAgent.RenameNetwork:output_type -> weft.v1.RenameNetworkResponse
+	73,  // 207: weft.v1.WeftAgent.SetNetworkDNS:output_type -> weft.v1.SetNetworkDNSResponse
+	75,  // 208: weft.v1.WeftAgent.DeleteNetwork:output_type -> weft.v1.DeleteNetworkResponse
+	77,  // 209: weft.v1.WeftAgent.SetNetworkDefaultSecurityGroups:output_type -> weft.v1.SetNetworkDefaultSecurityGroupsResponse
+	81,  // 210: weft.v1.WeftAgent.ListSecurityGroups:output_type -> weft.v1.ListSecurityGroupsResponse
+	83,  // 211: weft.v1.WeftAgent.CreateSecurityGroup:output_type -> weft.v1.CreateSecurityGroupResponse
+	85,  // 212: weft.v1.WeftAgent.RenameSecurityGroup:output_type -> weft.v1.RenameSecurityGroupResponse
+	87,  // 213: weft.v1.WeftAgent.SetSecurityGroupDescription:output_type -> weft.v1.SetSecurityGroupDescriptionResponse
+	89,  // 214: weft.v1.WeftAgent.SetSecurityGroupRules:output_type -> weft.v1.SetSecurityGroupRulesResponse
+	91,  // 215: weft.v1.WeftAgent.DeleteSecurityGroup:output_type -> weft.v1.DeleteSecurityGroupResponse
+	94,  // 216: weft.v1.WeftAgent.ListVolumes:output_type -> weft.v1.ListVolumesResponse
+	96,  // 217: weft.v1.WeftAgent.CreateVolume:output_type -> weft.v1.CreateVolumeResponse
+	98,  // 218: weft.v1.WeftAgent.RenameVolume:output_type -> weft.v1.RenameVolumeResponse
+	100, // 219: weft.v1.WeftAgent.ResizeVolume:output_type -> weft.v1.ResizeVolumeResponse
+	102, // 220: weft.v1.WeftAgent.AttachVolume:output_type -> weft.v1.AttachVolumeResponse
+	104, // 221: weft.v1.WeftAgent.DetachVolume:output_type -> weft.v1.DetachVolumeResponse
+	106, // 222: weft.v1.WeftAgent.DeleteVolume:output_type -> weft.v1.DeleteVolumeResponse
+	107, // 223: weft.v1.WeftAgent.WatchEvents:output_type -> weft.v1.PlatformEvent
+	110, // 224: weft.v1.WeftAgent.RenderNATSAuthorization:output_type -> weft.v1.RenderNATSAuthorizationResponse
+	120, // 225: weft.v1.WeftAgent.RegisterHost:output_type -> weft.v1.RegisterHostResponse
+	122, // 226: weft.v1.WeftAgent.ListHosts:output_type -> weft.v1.ListHostsResponse
+	124, // 227: weft.v1.WeftAgent.GetHost:output_type -> weft.v1.GetHostResponse
+	126, // 228: weft.v1.WeftAgent.HeartbeatHost:output_type -> weft.v1.HeartbeatHostResponse
+	128, // 229: weft.v1.WeftAgent.SetHostState:output_type -> weft.v1.SetHostStateResponse
+	130, // 230: weft.v1.WeftAgent.SetHostLabels:output_type -> weft.v1.SetHostLabelsResponse
+	132, // 231: weft.v1.WeftAgent.DeleteHost:output_type -> weft.v1.DeleteHostResponse
+	117, // 232: weft.v1.WeftAgent.PublishShareToProject:output_type -> weft.v1.PublishShareToProjectResponse
+	153, // 233: weft.v1.WeftAgent.ListTenants:output_type -> weft.v1.ListTenantsResponse
+	155, // 234: weft.v1.WeftAgent.CreateTenant:output_type -> weft.v1.CreateTenantResponse
+	157, // 235: weft.v1.WeftAgent.DeleteTenant:output_type -> weft.v1.DeleteTenantResponse
+	159, // 236: weft.v1.WeftAgent.AddTenantAdmin:output_type -> weft.v1.AddTenantAdminResponse
+	161, // 237: weft.v1.WeftAgent.RemoveTenantAdmin:output_type -> weft.v1.RemoveTenantAdminResponse
+	163, // 238: weft.v1.WeftAgent.AddTenantMember:output_type -> weft.v1.AddTenantMemberResponse
+	165, // 239: weft.v1.WeftAgent.RemoveTenantMember:output_type -> weft.v1.RemoveTenantMemberResponse
+	168, // 240: weft.v1.WeftAgent.GetTenantQuota:output_type -> weft.v1.GetTenantQuotaResponse
+	170, // 241: weft.v1.WeftAgent.SetTenantQuota:output_type -> weft.v1.SetTenantQuotaResponse
+	172, // 242: weft.v1.WeftAgent.GetProjectQuota:output_type -> weft.v1.GetProjectQuotaResponse
+	174, // 243: weft.v1.WeftAgent.SetProjectQuota:output_type -> weft.v1.SetProjectQuotaResponse
+	177, // 244: weft.v1.WeftAgent.ListShares:output_type -> weft.v1.ListSharesResponse
+	179, // 245: weft.v1.WeftAgent.CreateShare:output_type -> weft.v1.CreateShareResponse
+	181, // 246: weft.v1.WeftAgent.DeleteShare:output_type -> weft.v1.DeleteShareResponse
+	184, // 247: weft.v1.WeftAgent.ListFloatingIPs:output_type -> weft.v1.ListFloatingIPsResponse
+	186, // 248: weft.v1.WeftAgent.AllocateFloatingIP:output_type -> weft.v1.AllocateFloatingIPResponse
+	188, // 249: weft.v1.WeftAgent.ReleaseFloatingIP:output_type -> weft.v1.ReleaseFloatingIPResponse
+	190, // 250: weft.v1.WeftAgent.MapFloatingIP:output_type -> weft.v1.MapFloatingIPResponse
+	192, // 251: weft.v1.WeftAgent.UnmapFloatingIP:output_type -> weft.v1.UnmapFloatingIPResponse
+	195, // 252: weft.v1.WeftAgent.ListFlavors:output_type -> weft.v1.ListFlavorsResponse
+	197, // 253: weft.v1.WeftAgent.GetFlavor:output_type -> weft.v1.GetFlavorResponse
+	199, // 254: weft.v1.WeftAgent.SetFlavor:output_type -> weft.v1.SetFlavorResponse
+	201, // 255: weft.v1.WeftAgent.DeleteFlavor:output_type -> weft.v1.DeleteFlavorResponse
+	134, // 256: weft.v1.AgentDispatch.Connect:output_type -> weft.v1.ControlMessage
+	175, // [175:257] is the sub-list for method output_type
+	93,  // [93:175] is the sub-list for method input_type
+	93,  // [93:93] is the sub-list for extension type_name
+	93,  // [93:93] is the sub-list for extension extendee
+	0,   // [0:93] is the sub-list for field type_name
 }
 
 func init() { file_weft_proto_init() }
@@ -12314,7 +12813,7 @@ func file_weft_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_weft_proto_rawDesc), len(file_weft_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   197,
+			NumMessages:   206,
 			NumExtensions: 0,
 			NumServices:   2,
 		},
