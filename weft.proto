@@ -125,6 +125,25 @@ message CreateVMRequest {
   uint64 disk_gb  = 5;
   string ssh_pub  = 6; // public key injected via cloud-init
   string project  = 7;
+
+  // Nominal binding to a scheduling rule. When set, this VM is counted
+  // under the named rule regardless of label matching ; the rule's
+  // selector then only applies to VMs that have NO explicit binding
+  // (discovery path). Editing a rule's selector therefore never
+  // dislodges nominally-bound VMs — the property that makes selectors
+  // safe to refine in production. Empty = discovery path only.
+  //
+  // Pull/reconcile model : weft-agent persists this on the VMRecord
+  // and emits a vm.created event ; weft-network's reconcile loop
+  // applies the binding. No agent→network call in the hot path.
+  string scheduling_rule = 8;
+
+  // Private network to attach the primary NIC to. Empty = the
+  // project's default network. Same pull/reconcile semantics as
+  // scheduling_rule — weft-agent stores the label, weft-network
+  // reconciles AttachVM on its own. Editing the field on a live VM
+  // is a separate concern (not handled by CreateVM).
+  string network = 9;
 }
 message CreateVMResponse {}
 
