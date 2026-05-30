@@ -853,6 +853,11 @@ service WeftAgent {
   rpc ListVMProperties  (ListVMPropertiesRequest)  returns (ListVMPropertiesResponse);
   rpc SetVMProperty     (SetVMPropertyRequest)     returns (SetVMPropertyResponse);    // upsert by key
   rpc DeleteVMProperty  (DeleteVMPropertyRequest)  returns (DeleteVMPropertyResponse);
+
+  // --- UEFI NVRAM editor (per-VM firmware variables) ---
+  rpc ListUEFIVars  (ListUEFIVarsRequest)  returns (ListUEFIVarsResponse);
+  rpc SetUEFIVar    (SetUEFIVarRequest)    returns (SetUEFIVarResponse);    // upsert by (ns, name)
+  rpc DeleteUEFIVar (DeleteUEFIVarRequest) returns (DeleteUEFIVarResponse);
 }
 
 // --- Hosts -------------------------------------------------------
@@ -1459,3 +1464,49 @@ message DeleteVMPropertyRequest {
   string key     = 3;
 }
 message DeleteVMPropertyResponse { string deleted = 1; }
+
+// --- UEFI variables (per-VM firmware NVRAM) --------------------------
+//
+// Operator-facing editor for the VM's OVMF VARS file. Keyed by
+// (namespace GUID, name) at the wire shape — same model as the
+// EDK2 / efivarfs layout. Value carried as hex of the raw byte
+// blob (a uint16-LE list for BootOrder, a UTF-16 + flags blob for
+// Boot####, a single byte for SecureBoot, etc.).
+//
+// The hypervisor (weft-driver-vz / weft-driver-qemu) writes the
+// resulting NVRAM file at VM boot ; live edits on a running VM
+// take effect at next reboot.
+
+message UEFIVar {
+  string          namespace  = 1;  // GUID, e.g. "8be4df61-93ca-11d2-aa0d-00e098032b8c" (EFI Global)
+  string          name       = 2;  // "BootOrder", "Boot0000", "SecureBoot", ...
+  string          value_hex  = 3;  // hex of raw bytes ; empty = empty value (still valid)
+  repeated string attributes = 4;  // NonVolatile, BootServiceAccess, RuntimeAccess, ...
+  string          updated_at = 5;
+}
+
+message ListUEFIVarsRequest {
+  string vm_name    = 1;
+  string project    = 2;
+  int32  limit      = 3;
+  string page_token = 4;
+}
+message ListUEFIVarsResponse {
+  repeated UEFIVar vars            = 1;
+  string           next_page_token = 2;
+}
+
+message SetUEFIVarRequest {
+  string  vm_name = 1;
+  string  project = 2;
+  UEFIVar var     = 3;
+}
+message SetUEFIVarResponse { UEFIVar var = 1; }
+
+message DeleteUEFIVarRequest {
+  string vm_name   = 1;
+  string project   = 2;
+  string namespace = 3;
+  string name      = 4;
+}
+message DeleteUEFIVarResponse { string deleted = 1; }
