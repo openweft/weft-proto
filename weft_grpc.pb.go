@@ -110,6 +110,9 @@ const (
 	WeftAgent_ListUEFIVars_FullMethodName                    = "/weft.v1.WeftAgent/ListUEFIVars"
 	WeftAgent_SetUEFIVar_FullMethodName                      = "/weft.v1.WeftAgent/SetUEFIVar"
 	WeftAgent_DeleteUEFIVar_FullMethodName                   = "/weft.v1.WeftAgent/DeleteUEFIVar"
+	WeftAgent_ListVMSSHKeys_FullMethodName                   = "/weft.v1.WeftAgent/ListVMSSHKeys"
+	WeftAgent_AddVMSSHKey_FullMethodName                     = "/weft.v1.WeftAgent/AddVMSSHKey"
+	WeftAgent_RemoveVMSSHKey_FullMethodName                  = "/weft.v1.WeftAgent/RemoveVMSSHKey"
 )
 
 // WeftAgentClient is the client API for WeftAgent service.
@@ -263,6 +266,10 @@ type WeftAgentClient interface {
 	ListUEFIVars(ctx context.Context, in *ListUEFIVarsRequest, opts ...grpc.CallOption) (*ListUEFIVarsResponse, error)
 	SetUEFIVar(ctx context.Context, in *SetUEFIVarRequest, opts ...grpc.CallOption) (*SetUEFIVarResponse, error)
 	DeleteUEFIVar(ctx context.Context, in *DeleteUEFIVarRequest, opts ...grpc.CallOption) (*DeleteUEFIVarResponse, error)
+	// --- Per-VM SSH keys (runtime-pushed, not create-time) ---
+	ListVMSSHKeys(ctx context.Context, in *ListVMSSHKeysRequest, opts ...grpc.CallOption) (*ListVMSSHKeysResponse, error)
+	AddVMSSHKey(ctx context.Context, in *AddVMSSHKeyRequest, opts ...grpc.CallOption) (*AddVMSSHKeyResponse, error)
+	RemoveVMSSHKey(ctx context.Context, in *RemoveVMSSHKeyRequest, opts ...grpc.CallOption) (*RemoveVMSSHKeyResponse, error)
 }
 
 type weftAgentClient struct {
@@ -1192,6 +1199,36 @@ func (c *weftAgentClient) DeleteUEFIVar(ctx context.Context, in *DeleteUEFIVarRe
 	return out, nil
 }
 
+func (c *weftAgentClient) ListVMSSHKeys(ctx context.Context, in *ListVMSSHKeysRequest, opts ...grpc.CallOption) (*ListVMSSHKeysResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListVMSSHKeysResponse)
+	err := c.cc.Invoke(ctx, WeftAgent_ListVMSSHKeys_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *weftAgentClient) AddVMSSHKey(ctx context.Context, in *AddVMSSHKeyRequest, opts ...grpc.CallOption) (*AddVMSSHKeyResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AddVMSSHKeyResponse)
+	err := c.cc.Invoke(ctx, WeftAgent_AddVMSSHKey_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *weftAgentClient) RemoveVMSSHKey(ctx context.Context, in *RemoveVMSSHKeyRequest, opts ...grpc.CallOption) (*RemoveVMSSHKeyResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RemoveVMSSHKeyResponse)
+	err := c.cc.Invoke(ctx, WeftAgent_RemoveVMSSHKey_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // WeftAgentServer is the server API for WeftAgent service.
 // All implementations must embed UnimplementedWeftAgentServer
 // for forward compatibility.
@@ -1343,6 +1380,10 @@ type WeftAgentServer interface {
 	ListUEFIVars(context.Context, *ListUEFIVarsRequest) (*ListUEFIVarsResponse, error)
 	SetUEFIVar(context.Context, *SetUEFIVarRequest) (*SetUEFIVarResponse, error)
 	DeleteUEFIVar(context.Context, *DeleteUEFIVarRequest) (*DeleteUEFIVarResponse, error)
+	// --- Per-VM SSH keys (runtime-pushed, not create-time) ---
+	ListVMSSHKeys(context.Context, *ListVMSSHKeysRequest) (*ListVMSSHKeysResponse, error)
+	AddVMSSHKey(context.Context, *AddVMSSHKeyRequest) (*AddVMSSHKeyResponse, error)
+	RemoveVMSSHKey(context.Context, *RemoveVMSSHKeyRequest) (*RemoveVMSSHKeyResponse, error)
 	mustEmbedUnimplementedWeftAgentServer()
 }
 
@@ -1625,6 +1666,15 @@ func (UnimplementedWeftAgentServer) SetUEFIVar(context.Context, *SetUEFIVarReque
 }
 func (UnimplementedWeftAgentServer) DeleteUEFIVar(context.Context, *DeleteUEFIVarRequest) (*DeleteUEFIVarResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteUEFIVar not implemented")
+}
+func (UnimplementedWeftAgentServer) ListVMSSHKeys(context.Context, *ListVMSSHKeysRequest) (*ListVMSSHKeysResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListVMSSHKeys not implemented")
+}
+func (UnimplementedWeftAgentServer) AddVMSSHKey(context.Context, *AddVMSSHKeyRequest) (*AddVMSSHKeyResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AddVMSSHKey not implemented")
+}
+func (UnimplementedWeftAgentServer) RemoveVMSSHKey(context.Context, *RemoveVMSSHKeyRequest) (*RemoveVMSSHKeyResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RemoveVMSSHKey not implemented")
 }
 func (UnimplementedWeftAgentServer) mustEmbedUnimplementedWeftAgentServer() {}
 func (UnimplementedWeftAgentServer) testEmbeddedByValue()                   {}
@@ -3278,6 +3328,60 @@ func _WeftAgent_DeleteUEFIVar_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WeftAgent_ListVMSSHKeys_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListVMSSHKeysRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WeftAgentServer).ListVMSSHKeys(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WeftAgent_ListVMSSHKeys_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WeftAgentServer).ListVMSSHKeys(ctx, req.(*ListVMSSHKeysRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WeftAgent_AddVMSSHKey_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddVMSSHKeyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WeftAgentServer).AddVMSSHKey(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WeftAgent_AddVMSSHKey_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WeftAgentServer).AddVMSSHKey(ctx, req.(*AddVMSSHKeyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WeftAgent_RemoveVMSSHKey_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveVMSSHKeyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WeftAgentServer).RemoveVMSSHKey(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WeftAgent_RemoveVMSSHKey_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WeftAgentServer).RemoveVMSSHKey(ctx, req.(*RemoveVMSSHKeyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // WeftAgent_ServiceDesc is the grpc.ServiceDesc for WeftAgent service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -3644,6 +3748,18 @@ var WeftAgent_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteUEFIVar",
 			Handler:    _WeftAgent_DeleteUEFIVar_Handler,
+		},
+		{
+			MethodName: "ListVMSSHKeys",
+			Handler:    _WeftAgent_ListVMSSHKeys_Handler,
+		},
+		{
+			MethodName: "AddVMSSHKey",
+			Handler:    _WeftAgent_AddVMSSHKey_Handler,
+		},
+		{
+			MethodName: "RemoveVMSSHKey",
+			Handler:    _WeftAgent_RemoveVMSSHKey_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
