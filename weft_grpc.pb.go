@@ -67,6 +67,10 @@ const (
 	WeftAgent_AttachVolume_FullMethodName                    = "/weft.v1.WeftAgent/AttachVolume"
 	WeftAgent_DetachVolume_FullMethodName                    = "/weft.v1.WeftAgent/DetachVolume"
 	WeftAgent_DeleteVolume_FullMethodName                    = "/weft.v1.WeftAgent/DeleteVolume"
+	WeftAgent_CreateVolumeSnapshot_FullMethodName            = "/weft.v1.WeftAgent/CreateVolumeSnapshot"
+	WeftAgent_ListVolumeSnapshots_FullMethodName             = "/weft.v1.WeftAgent/ListVolumeSnapshots"
+	WeftAgent_RestoreVolumeSnapshot_FullMethodName           = "/weft.v1.WeftAgent/RestoreVolumeSnapshot"
+	WeftAgent_DeleteVolumeSnapshot_FullMethodName            = "/weft.v1.WeftAgent/DeleteVolumeSnapshot"
 	WeftAgent_WatchEvents_FullMethodName                     = "/weft.v1.WeftAgent/WatchEvents"
 	WeftAgent_RenderNATSAuthorization_FullMethodName         = "/weft.v1.WeftAgent/RenderNATSAuthorization"
 	WeftAgent_RegisterHost_FullMethodName                    = "/weft.v1.WeftAgent/RegisterHost"
@@ -119,7 +123,7 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// VzdService is the gRPC API exposed by vzd.
+// WeftService is the gRPC API exposed by weft.
 type WeftAgentClient interface {
 	ListVMs(ctx context.Context, in *ListVMsRequest, opts ...grpc.CallOption) (*ListVMsResponse, error)
 	VMStatus(ctx context.Context, in *VMStatusRequest, opts ...grpc.CallOption) (*VMStatusResponse, error)
@@ -136,17 +140,17 @@ type WeftAgentClient interface {
 	CleanImages(ctx context.Context, in *CleanImagesRequest, opts ...grpc.CallOption) (*CleanImagesResponse, error)
 	WaitVM(ctx context.Context, in *WaitVMRequest, opts ...grpc.CallOption) (*WaitVMResponse, error)
 	// Nano-Container-Linux integration: register a VM directory that
-	// boots from a read-only ncl-init UKI ISO and exposes the OCI
+	// boots from a read-only weft-microvm-init UKI ISO and exposes the OCI
 	// rootfs to the guest via virtio-fs. After this returns the VM
 	// is in VM_STATE_STOPPED; call StartVM to boot it.
 	RegisterMicroVM(ctx context.Context, in *RegisterMicroVMRequest, opts ...grpc.CallOption) (*RegisterMicroVMResponse, error)
 	// Per-VM lifecycle event log: every transition the daemon
-	// observed (server-side state + folded guest-side NCL_MARK
+	// observed (server-side state + folded guest-side WEFT_MARK
 	// lines from the console). Returned in wall-clock order.
 	VMTimings(ctx context.Context, in *VMTimingsRequest, opts ...grpc.CallOption) (*VMTimingsResponse, error)
 	// Read a VM's serial console log (the raw byte stream the guest
-	// produced on hvc0 / serial port — boot messages, ncl-init log
-	// lines, NCL_MARK markers, and the container's own stdout/
+	// produced on hvc0 / serial port — boot messages, weft-microvm-init log
+	// lines, WEFT_MARK markers, and the container's own stdout/
 	// stderr, all interleaved). Single-shot read; `tail_bytes` caps
 	// the response to the last N bytes when non-zero.
 	VMLogs(ctx context.Context, in *VMLogsRequest, opts ...grpc.CallOption) (*VMLogsResponse, error)
@@ -198,6 +202,17 @@ type WeftAgentClient interface {
 	AttachVolume(ctx context.Context, in *AttachVolumeRequest, opts ...grpc.CallOption) (*AttachVolumeResponse, error)
 	DetachVolume(ctx context.Context, in *DetachVolumeRequest, opts ...grpc.CallOption) (*DetachVolumeResponse, error)
 	DeleteVolume(ctx context.Context, in *DeleteVolumeRequest, opts ...grpc.CallOption) (*DeleteVolumeResponse, error)
+	// Volume snapshot RPCs. A snapshot is a point-in-time CoW copy of a
+	// volume's contents — same backing primitive as the VM CoW clone
+	// (FICLONE / reflink). Listed under the parent volume's UUID,
+	// referenceable by their own UUID for restore. The restore path
+	// re-clones the snapshot into a fresh volume (does NOT mutate the
+	// parent in place — that would invalidate every other snapshot
+	// taken since).
+	CreateVolumeSnapshot(ctx context.Context, in *CreateVolumeSnapshotRequest, opts ...grpc.CallOption) (*CreateVolumeSnapshotResponse, error)
+	ListVolumeSnapshots(ctx context.Context, in *ListVolumeSnapshotsRequest, opts ...grpc.CallOption) (*ListVolumeSnapshotsResponse, error)
+	RestoreVolumeSnapshot(ctx context.Context, in *RestoreVolumeSnapshotRequest, opts ...grpc.CallOption) (*RestoreVolumeSnapshotResponse, error)
+	DeleteVolumeSnapshot(ctx context.Context, in *DeleteVolumeSnapshotRequest, opts ...grpc.CallOption) (*DeleteVolumeSnapshotResponse, error)
 	// WatchEvents opens a server-stream of platform events. Lets
 	// clients react to VM lifecycle / project mutation / guest-side
 	// marker changes without polling. ACL-filtered server-side by
@@ -206,12 +221,12 @@ type WeftAgentClient interface {
 	// RenderNATSAuthorization returns the NATS-conf `authorization`
 	// block (per-project NKey allow-list, default-deny) for the
 	// operator to splice into nats.conf. Admin-gated.
-	// Per [[vzd-tenant-event-access]] Phase 3.
+	// Per [[weft-tenant-event-access]] Phase 3.
 	RenderNATSAuthorization(ctx context.Context, in *RenderNATSAuthorizationRequest, opts ...grpc.CallOption) (*RenderNATSAuthorizationResponse, error)
 	// Host registry RPCs. The Host inventory drives multi-host
 	// placement: every hypervisor instance registers itself (or is
 	// registered by the operator) and the scheduler picks among
-	// them honouring [[vzd-placement-rules]].
+	// them honouring [[weft-placement-rules]].
 	RegisterHost(ctx context.Context, in *RegisterHostRequest, opts ...grpc.CallOption) (*RegisterHostResponse, error)
 	ListHosts(ctx context.Context, in *ListHostsRequest, opts ...grpc.CallOption) (*ListHostsResponse, error)
 	GetHost(ctx context.Context, in *GetHostRequest, opts ...grpc.CallOption) (*GetHostResponse, error)
@@ -760,6 +775,46 @@ func (c *weftAgentClient) DeleteVolume(ctx context.Context, in *DeleteVolumeRequ
 	return out, nil
 }
 
+func (c *weftAgentClient) CreateVolumeSnapshot(ctx context.Context, in *CreateVolumeSnapshotRequest, opts ...grpc.CallOption) (*CreateVolumeSnapshotResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateVolumeSnapshotResponse)
+	err := c.cc.Invoke(ctx, WeftAgent_CreateVolumeSnapshot_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *weftAgentClient) ListVolumeSnapshots(ctx context.Context, in *ListVolumeSnapshotsRequest, opts ...grpc.CallOption) (*ListVolumeSnapshotsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListVolumeSnapshotsResponse)
+	err := c.cc.Invoke(ctx, WeftAgent_ListVolumeSnapshots_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *weftAgentClient) RestoreVolumeSnapshot(ctx context.Context, in *RestoreVolumeSnapshotRequest, opts ...grpc.CallOption) (*RestoreVolumeSnapshotResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RestoreVolumeSnapshotResponse)
+	err := c.cc.Invoke(ctx, WeftAgent_RestoreVolumeSnapshot_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *weftAgentClient) DeleteVolumeSnapshot(ctx context.Context, in *DeleteVolumeSnapshotRequest, opts ...grpc.CallOption) (*DeleteVolumeSnapshotResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteVolumeSnapshotResponse)
+	err := c.cc.Invoke(ctx, WeftAgent_DeleteVolumeSnapshot_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *weftAgentClient) WatchEvents(ctx context.Context, in *WatchEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[PlatformEvent], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	stream, err := c.cc.NewStream(ctx, &WeftAgent_ServiceDesc.Streams[0], WeftAgent_WatchEvents_FullMethodName, cOpts...)
@@ -1233,7 +1288,7 @@ func (c *weftAgentClient) RemoveVMSSHKey(ctx context.Context, in *RemoveVMSSHKey
 // All implementations must embed UnimplementedWeftAgentServer
 // for forward compatibility.
 //
-// VzdService is the gRPC API exposed by vzd.
+// WeftService is the gRPC API exposed by weft.
 type WeftAgentServer interface {
 	ListVMs(context.Context, *ListVMsRequest) (*ListVMsResponse, error)
 	VMStatus(context.Context, *VMStatusRequest) (*VMStatusResponse, error)
@@ -1250,17 +1305,17 @@ type WeftAgentServer interface {
 	CleanImages(context.Context, *CleanImagesRequest) (*CleanImagesResponse, error)
 	WaitVM(context.Context, *WaitVMRequest) (*WaitVMResponse, error)
 	// Nano-Container-Linux integration: register a VM directory that
-	// boots from a read-only ncl-init UKI ISO and exposes the OCI
+	// boots from a read-only weft-microvm-init UKI ISO and exposes the OCI
 	// rootfs to the guest via virtio-fs. After this returns the VM
 	// is in VM_STATE_STOPPED; call StartVM to boot it.
 	RegisterMicroVM(context.Context, *RegisterMicroVMRequest) (*RegisterMicroVMResponse, error)
 	// Per-VM lifecycle event log: every transition the daemon
-	// observed (server-side state + folded guest-side NCL_MARK
+	// observed (server-side state + folded guest-side WEFT_MARK
 	// lines from the console). Returned in wall-clock order.
 	VMTimings(context.Context, *VMTimingsRequest) (*VMTimingsResponse, error)
 	// Read a VM's serial console log (the raw byte stream the guest
-	// produced on hvc0 / serial port — boot messages, ncl-init log
-	// lines, NCL_MARK markers, and the container's own stdout/
+	// produced on hvc0 / serial port — boot messages, weft-microvm-init log
+	// lines, WEFT_MARK markers, and the container's own stdout/
 	// stderr, all interleaved). Single-shot read; `tail_bytes` caps
 	// the response to the last N bytes when non-zero.
 	VMLogs(context.Context, *VMLogsRequest) (*VMLogsResponse, error)
@@ -1312,6 +1367,17 @@ type WeftAgentServer interface {
 	AttachVolume(context.Context, *AttachVolumeRequest) (*AttachVolumeResponse, error)
 	DetachVolume(context.Context, *DetachVolumeRequest) (*DetachVolumeResponse, error)
 	DeleteVolume(context.Context, *DeleteVolumeRequest) (*DeleteVolumeResponse, error)
+	// Volume snapshot RPCs. A snapshot is a point-in-time CoW copy of a
+	// volume's contents — same backing primitive as the VM CoW clone
+	// (FICLONE / reflink). Listed under the parent volume's UUID,
+	// referenceable by their own UUID for restore. The restore path
+	// re-clones the snapshot into a fresh volume (does NOT mutate the
+	// parent in place — that would invalidate every other snapshot
+	// taken since).
+	CreateVolumeSnapshot(context.Context, *CreateVolumeSnapshotRequest) (*CreateVolumeSnapshotResponse, error)
+	ListVolumeSnapshots(context.Context, *ListVolumeSnapshotsRequest) (*ListVolumeSnapshotsResponse, error)
+	RestoreVolumeSnapshot(context.Context, *RestoreVolumeSnapshotRequest) (*RestoreVolumeSnapshotResponse, error)
+	DeleteVolumeSnapshot(context.Context, *DeleteVolumeSnapshotRequest) (*DeleteVolumeSnapshotResponse, error)
 	// WatchEvents opens a server-stream of platform events. Lets
 	// clients react to VM lifecycle / project mutation / guest-side
 	// marker changes without polling. ACL-filtered server-side by
@@ -1320,12 +1386,12 @@ type WeftAgentServer interface {
 	// RenderNATSAuthorization returns the NATS-conf `authorization`
 	// block (per-project NKey allow-list, default-deny) for the
 	// operator to splice into nats.conf. Admin-gated.
-	// Per [[vzd-tenant-event-access]] Phase 3.
+	// Per [[weft-tenant-event-access]] Phase 3.
 	RenderNATSAuthorization(context.Context, *RenderNATSAuthorizationRequest) (*RenderNATSAuthorizationResponse, error)
 	// Host registry RPCs. The Host inventory drives multi-host
 	// placement: every hypervisor instance registers itself (or is
 	// registered by the operator) and the scheduler picks among
-	// them honouring [[vzd-placement-rules]].
+	// them honouring [[weft-placement-rules]].
 	RegisterHost(context.Context, *RegisterHostRequest) (*RegisterHostResponse, error)
 	ListHosts(context.Context, *ListHostsRequest) (*ListHostsResponse, error)
 	GetHost(context.Context, *GetHostRequest) (*GetHostResponse, error)
@@ -1537,6 +1603,18 @@ func (UnimplementedWeftAgentServer) DetachVolume(context.Context, *DetachVolumeR
 }
 func (UnimplementedWeftAgentServer) DeleteVolume(context.Context, *DeleteVolumeRequest) (*DeleteVolumeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteVolume not implemented")
+}
+func (UnimplementedWeftAgentServer) CreateVolumeSnapshot(context.Context, *CreateVolumeSnapshotRequest) (*CreateVolumeSnapshotResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateVolumeSnapshot not implemented")
+}
+func (UnimplementedWeftAgentServer) ListVolumeSnapshots(context.Context, *ListVolumeSnapshotsRequest) (*ListVolumeSnapshotsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListVolumeSnapshots not implemented")
+}
+func (UnimplementedWeftAgentServer) RestoreVolumeSnapshot(context.Context, *RestoreVolumeSnapshotRequest) (*RestoreVolumeSnapshotResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RestoreVolumeSnapshot not implemented")
+}
+func (UnimplementedWeftAgentServer) DeleteVolumeSnapshot(context.Context, *DeleteVolumeSnapshotRequest) (*DeleteVolumeSnapshotResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteVolumeSnapshot not implemented")
 }
 func (UnimplementedWeftAgentServer) WatchEvents(*WatchEventsRequest, grpc.ServerStreamingServer[PlatformEvent]) error {
 	return status.Error(codes.Unimplemented, "method WatchEvents not implemented")
@@ -2561,6 +2639,78 @@ func _WeftAgent_DeleteVolume_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WeftAgent_CreateVolumeSnapshot_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateVolumeSnapshotRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WeftAgentServer).CreateVolumeSnapshot(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WeftAgent_CreateVolumeSnapshot_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WeftAgentServer).CreateVolumeSnapshot(ctx, req.(*CreateVolumeSnapshotRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WeftAgent_ListVolumeSnapshots_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListVolumeSnapshotsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WeftAgentServer).ListVolumeSnapshots(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WeftAgent_ListVolumeSnapshots_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WeftAgentServer).ListVolumeSnapshots(ctx, req.(*ListVolumeSnapshotsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WeftAgent_RestoreVolumeSnapshot_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RestoreVolumeSnapshotRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WeftAgentServer).RestoreVolumeSnapshot(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WeftAgent_RestoreVolumeSnapshot_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WeftAgentServer).RestoreVolumeSnapshot(ctx, req.(*RestoreVolumeSnapshotRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WeftAgent_DeleteVolumeSnapshot_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteVolumeSnapshotRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WeftAgentServer).DeleteVolumeSnapshot(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WeftAgent_DeleteVolumeSnapshot_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WeftAgentServer).DeleteVolumeSnapshot(ctx, req.(*DeleteVolumeSnapshotRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _WeftAgent_WatchEvents_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(WatchEventsRequest)
 	if err := stream.RecvMsg(m); err != nil {
@@ -3580,6 +3730,22 @@ var WeftAgent_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteVolume",
 			Handler:    _WeftAgent_DeleteVolume_Handler,
+		},
+		{
+			MethodName: "CreateVolumeSnapshot",
+			Handler:    _WeftAgent_CreateVolumeSnapshot_Handler,
+		},
+		{
+			MethodName: "ListVolumeSnapshots",
+			Handler:    _WeftAgent_ListVolumeSnapshots_Handler,
+		},
+		{
+			MethodName: "RestoreVolumeSnapshot",
+			Handler:    _WeftAgent_RestoreVolumeSnapshot_Handler,
+		},
+		{
+			MethodName: "DeleteVolumeSnapshot",
+			Handler:    _WeftAgent_DeleteVolumeSnapshot_Handler,
 		},
 		{
 			MethodName: "RenderNATSAuthorization",
