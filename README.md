@@ -1,8 +1,8 @@
-# vzd-proto
+# weft-proto
 
-Protobuf/gRPC service definition and generated Go stubs for the `vzd` daemon API.
+Protobuf/gRPC service definition and generated Go stubs for the `weft` daemon API.
 
-This module is the shared contract between the server ([`weft`](../weft)), the CLI client ([`vzc`](../vzc)), the graphical dashboard ([`weft-ui`](../weft-ui)), and the Terraform provider ([`terraform-provider-weft`](../terraform-provider-weft)).
+This module is the shared contract between the [`weft`](../weft) daemon + CLI, the web dashboard ([`weft-webui`](../weft-webui)), and the Terraform provider ([`terraform-provider-weft`](../terraform-provider-weft)).
 
 ## Module
 
@@ -10,7 +10,7 @@ This module is the shared contract between the server ([`weft`](../weft)), the C
 github.com/openweft/weft-proto
 ```
 
-## Service: `VzdService`
+## Service: `WeftService`
 
 | RPC | Description |
 |-----|-------------|
@@ -30,7 +30,7 @@ github.com/openweft/weft-proto
 
 ## Service: `Introspect` (guest-side, package `introspectv1`)
 
-Read-only inspection API a micro-VM serves on its `wg0` address for an operator CLI to reach over WireGuard (see [`weft-vm-agent`](../weft-vm-agent) for the server and [`weft-client/wgdial`](../weft-client/wgdial) for the client transport). Defined in `introspect.proto`, generated into the `introspectv1/` subpackage.
+Read-only inspection API a micro-VM serves on its `wg0` address for an operator CLI to reach over WireGuard (see [`weft-microvm-agent`](../weft-microvm-agent) for the server and [`weft-client/wgdial`](../weft-client/wgdial) for the client transport). Defined in `introspect.proto`, generated into the `introspectv1/` subpackage.
 
 | RPC | Description |
 |-----|-------------|
@@ -54,10 +54,10 @@ message VMInfo {
 ## Regenerate stubs
 
 ```sh
-# vzd.proto → root package vzdv1 (go_package has no path component)
+# weft.proto → root package weftv1 (go_package has no path component)
 protoc --go_out=. --go-grpc_out=. \
   --go_opt=paths=source_relative --go-grpc_opt=paths=source_relative \
-  vzd.proto
+  weft.proto
 
 # introspect.proto → introspectv1/ subpackage (go_package carries a path,
 # so use module= to land output in the right subdir)
