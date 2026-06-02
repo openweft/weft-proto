@@ -7,6 +7,15 @@ and this project aims to adhere to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased]
 
+## [v0.3.0] — 2026-06-02
+
+### Added
+
+- `GPURequest` message: `vendor`, `model`, `count`, optional `mig_slice` — mirrors the in-tree `weft/scheduling.GPURequest` struct.
+- `PCIPassthroughRequest` message: `vendor_id`, `device_id`, `count` for non-GPU PCI passthrough (NIC, NVMe, FPGA, sound card).
+- `CreateVMRequest.requested_gpus` (field 10) and `CreateVMRequest.requested_pci` (field 11) — admission-time passthrough shape, persisted on the VMRecord, enforced by tenant_quotas. Closes the `nil` gap noted in commit 2ca4fce8a.
+- `RegisterMicroVMRequest.requested_gpus` (field 9) and `RegisterMicroVMRequest.requested_pci` (field 10) — same surface for the microVM boot path.
+
 ## [v0.2.0] — 2026-05-31
 
 ### Added
