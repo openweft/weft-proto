@@ -811,6 +811,76 @@ message PublishShareToProjectResponse {
   uint32 vm_count = 1; // number of VMs the mount was fanned out to
 }
 
+// --- Federation (peer-poll snapshot) -----------------------------
+//
+// Surfaces the cached state held by the in-process federation.Poller :
+// each peer the operator declared in cluster.hcl, the manifest-derived
+// region/weight, the last successful poll, and the classified status
+// ("live" | "stale" | "unreachable"). Per [[openweft_pull_model]] the
+// agent already maintains this state ; the RPC is a read of the local
+// snapshot — no remote pull happens on the hot path.
+
+message FederationPeerInfo {
+  string name              = 1;  // peer label (manifest name once seen, else operator-supplied)
+  string region            = 2;  // free-form locality from the peer's manifest entry
+  int64  last_seen_unix_ns = 3;  // ns since epoch of the last successful poll, 0 before first
+  string status            = 4;  // "live" | "stale" | "unreachable"
+  int32  weight            = 5;  // placement bias from the peer's manifest entry ; 0 = default
+  string url               = 6;  // /cluster-info URL the poller targets
+  string last_error        = 7;  // most recent poll error, empty when healthy
+}
+
+message ListFederationPeersRequest  {}
+message ListFederationPeersResponse { repeated FederationPeerInfo peers = 1; }
+
+// --- Plugin catalogue / install ----------------------------------
+//
+// Reads the pluginstore.Manager surface : the on-disk catalogue
+// (parsed plugin.hcl manifests under catalogue/) and the installed
+// instance registry (etcd-backed in HA, file-backed in dev). Install
+// drives the existing pluginstore.Manager.Install pipeline ; the
+// returned `instance_uuid` is the deterministic hash of (name,
+// project, inputs) so a re-install with the same inputs short-circuits.
+
+message PluginInput {
+  string name     = 1;  // input identifier (matches manifest's Input.Name)
+  string type     = 2;  // "string" | "int" | "bool" | "secret"
+  string default  = 3;  // string-encoded default ; empty when no default
+  bool   required = 4;
+  bool   secret   = 5;  // hide value from list ; UI renders <input type=password>
+  string help     = 6;  // optional one-line help text
+}
+
+message PluginCatalogueEntry {
+  string name        = 1;
+  string version     = 2;
+  string kind        = 3;
+  string description = 4;
+  repeated PluginInput inputs = 5;
+}
+
+message PluginInstance {
+  string name           = 1;  // catalogue plugin name
+  string instance_uuid  = 2;
+  repeated string vm_uuids = 3;  // VMs the instance currently manages
+  int64  installed_at_unix_ns = 4;
+  string status         = 5;  // "running" | "provisioning" | "degraded" | "failed"
+  string project        = 6;
+}
+
+message ListPluginCatalogueRequest  {}
+message ListPluginCatalogueResponse { repeated PluginCatalogueEntry entries = 1; }
+
+message ListInstalledPluginsRequest  {}
+message ListInstalledPluginsResponse { repeated PluginInstance instances = 1; }
+
+message InstallPluginRequest {
+  string name              = 1;  // catalogue entry name
+  string project           = 2;  // target project (name or UUID)
+  map<string,string> inputs = 3;
+}
+message InstallPluginResponse { string instance_uuid = 1; }
+
 // WeftService is the gRPC API exposed by weft.
 service WeftAgent {
   rpc ListVMs       (ListVMsRequest)       returns (ListVMsResponse);
@@ -996,6 +1066,17 @@ service WeftAgent {
   rpc ListVMSSHKeys   (ListVMSSHKeysRequest)   returns (ListVMSSHKeysResponse);
   rpc AddVMSSHKey     (AddVMSSHKeyRequest)     returns (AddVMSSHKeyResponse);    // idempotent on fingerprint
   rpc RemoveVMSSHKey  (RemoveVMSSHKeyRequest)  returns (RemoveVMSSHKeyResponse);
+
+  // --- Federation (peer-poll snapshot, read-only) ---
+  // Reads the in-memory federation.Poller cache. Per
+  // [[openweft_pull_model]], the agent already holds the snapshot ;
+  // the RPC does NOT trigger a remote pull on the hot path.
+  rpc ListFederationPeers (ListFederationPeersRequest) returns (ListFederationPeersResponse);
+
+  // --- Plugin catalogue + installed-instance registry ---
+  rpc ListPluginCatalogue  (ListPluginCatalogueRequest)  returns (ListPluginCatalogueResponse);
+  rpc ListInstalledPlugins (ListInstalledPluginsRequest) returns (ListInstalledPluginsResponse);
+  rpc InstallPlugin        (InstallPluginRequest)        returns (InstallPluginResponse);
 }
 
 // --- Hosts -------------------------------------------------------

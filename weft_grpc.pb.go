@@ -118,6 +118,10 @@ const (
 	WeftAgent_ListVMSSHKeys_FullMethodName                   = "/weft.v1.WeftAgent/ListVMSSHKeys"
 	WeftAgent_AddVMSSHKey_FullMethodName                     = "/weft.v1.WeftAgent/AddVMSSHKey"
 	WeftAgent_RemoveVMSSHKey_FullMethodName                  = "/weft.v1.WeftAgent/RemoveVMSSHKey"
+	WeftAgent_ListFederationPeers_FullMethodName             = "/weft.v1.WeftAgent/ListFederationPeers"
+	WeftAgent_ListPluginCatalogue_FullMethodName             = "/weft.v1.WeftAgent/ListPluginCatalogue"
+	WeftAgent_ListInstalledPlugins_FullMethodName            = "/weft.v1.WeftAgent/ListInstalledPlugins"
+	WeftAgent_InstallPlugin_FullMethodName                   = "/weft.v1.WeftAgent/InstallPlugin"
 )
 
 // WeftAgentClient is the client API for WeftAgent service.
@@ -287,6 +291,15 @@ type WeftAgentClient interface {
 	ListVMSSHKeys(ctx context.Context, in *ListVMSSHKeysRequest, opts ...grpc.CallOption) (*ListVMSSHKeysResponse, error)
 	AddVMSSHKey(ctx context.Context, in *AddVMSSHKeyRequest, opts ...grpc.CallOption) (*AddVMSSHKeyResponse, error)
 	RemoveVMSSHKey(ctx context.Context, in *RemoveVMSSHKeyRequest, opts ...grpc.CallOption) (*RemoveVMSSHKeyResponse, error)
+	// --- Federation (peer-poll snapshot, read-only) ---
+	// Reads the in-memory federation.Poller cache. Per
+	// [[openweft_pull_model]], the agent already holds the snapshot ;
+	// the RPC does NOT trigger a remote pull on the hot path.
+	ListFederationPeers(ctx context.Context, in *ListFederationPeersRequest, opts ...grpc.CallOption) (*ListFederationPeersResponse, error)
+	// --- Plugin catalogue + installed-instance registry ---
+	ListPluginCatalogue(ctx context.Context, in *ListPluginCatalogueRequest, opts ...grpc.CallOption) (*ListPluginCatalogueResponse, error)
+	ListInstalledPlugins(ctx context.Context, in *ListInstalledPluginsRequest, opts ...grpc.CallOption) (*ListInstalledPluginsResponse, error)
+	InstallPlugin(ctx context.Context, in *InstallPluginRequest, opts ...grpc.CallOption) (*InstallPluginResponse, error)
 }
 
 type weftAgentClient struct {
@@ -1296,6 +1309,46 @@ func (c *weftAgentClient) RemoveVMSSHKey(ctx context.Context, in *RemoveVMSSHKey
 	return out, nil
 }
 
+func (c *weftAgentClient) ListFederationPeers(ctx context.Context, in *ListFederationPeersRequest, opts ...grpc.CallOption) (*ListFederationPeersResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListFederationPeersResponse)
+	err := c.cc.Invoke(ctx, WeftAgent_ListFederationPeers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *weftAgentClient) ListPluginCatalogue(ctx context.Context, in *ListPluginCatalogueRequest, opts ...grpc.CallOption) (*ListPluginCatalogueResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListPluginCatalogueResponse)
+	err := c.cc.Invoke(ctx, WeftAgent_ListPluginCatalogue_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *weftAgentClient) ListInstalledPlugins(ctx context.Context, in *ListInstalledPluginsRequest, opts ...grpc.CallOption) (*ListInstalledPluginsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListInstalledPluginsResponse)
+	err := c.cc.Invoke(ctx, WeftAgent_ListInstalledPlugins_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *weftAgentClient) InstallPlugin(ctx context.Context, in *InstallPluginRequest, opts ...grpc.CallOption) (*InstallPluginResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(InstallPluginResponse)
+	err := c.cc.Invoke(ctx, WeftAgent_InstallPlugin_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // WeftAgentServer is the server API for WeftAgent service.
 // All implementations must embed UnimplementedWeftAgentServer
 // for forward compatibility.
@@ -1463,6 +1516,15 @@ type WeftAgentServer interface {
 	ListVMSSHKeys(context.Context, *ListVMSSHKeysRequest) (*ListVMSSHKeysResponse, error)
 	AddVMSSHKey(context.Context, *AddVMSSHKeyRequest) (*AddVMSSHKeyResponse, error)
 	RemoveVMSSHKey(context.Context, *RemoveVMSSHKeyRequest) (*RemoveVMSSHKeyResponse, error)
+	// --- Federation (peer-poll snapshot, read-only) ---
+	// Reads the in-memory federation.Poller cache. Per
+	// [[openweft_pull_model]], the agent already holds the snapshot ;
+	// the RPC does NOT trigger a remote pull on the hot path.
+	ListFederationPeers(context.Context, *ListFederationPeersRequest) (*ListFederationPeersResponse, error)
+	// --- Plugin catalogue + installed-instance registry ---
+	ListPluginCatalogue(context.Context, *ListPluginCatalogueRequest) (*ListPluginCatalogueResponse, error)
+	ListInstalledPlugins(context.Context, *ListInstalledPluginsRequest) (*ListInstalledPluginsResponse, error)
+	InstallPlugin(context.Context, *InstallPluginRequest) (*InstallPluginResponse, error)
 	mustEmbedUnimplementedWeftAgentServer()
 }
 
@@ -1769,6 +1831,18 @@ func (UnimplementedWeftAgentServer) AddVMSSHKey(context.Context, *AddVMSSHKeyReq
 }
 func (UnimplementedWeftAgentServer) RemoveVMSSHKey(context.Context, *RemoveVMSSHKeyRequest) (*RemoveVMSSHKeyResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RemoveVMSSHKey not implemented")
+}
+func (UnimplementedWeftAgentServer) ListFederationPeers(context.Context, *ListFederationPeersRequest) (*ListFederationPeersResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListFederationPeers not implemented")
+}
+func (UnimplementedWeftAgentServer) ListPluginCatalogue(context.Context, *ListPluginCatalogueRequest) (*ListPluginCatalogueResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListPluginCatalogue not implemented")
+}
+func (UnimplementedWeftAgentServer) ListInstalledPlugins(context.Context, *ListInstalledPluginsRequest) (*ListInstalledPluginsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListInstalledPlugins not implemented")
+}
+func (UnimplementedWeftAgentServer) InstallPlugin(context.Context, *InstallPluginRequest) (*InstallPluginResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method InstallPlugin not implemented")
 }
 func (UnimplementedWeftAgentServer) mustEmbedUnimplementedWeftAgentServer() {}
 func (UnimplementedWeftAgentServer) testEmbeddedByValue()                   {}
@@ -3566,6 +3640,78 @@ func _WeftAgent_RemoveVMSSHKey_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WeftAgent_ListFederationPeers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListFederationPeersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WeftAgentServer).ListFederationPeers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WeftAgent_ListFederationPeers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WeftAgentServer).ListFederationPeers(ctx, req.(*ListFederationPeersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WeftAgent_ListPluginCatalogue_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListPluginCatalogueRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WeftAgentServer).ListPluginCatalogue(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WeftAgent_ListPluginCatalogue_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WeftAgentServer).ListPluginCatalogue(ctx, req.(*ListPluginCatalogueRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WeftAgent_ListInstalledPlugins_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListInstalledPluginsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WeftAgentServer).ListInstalledPlugins(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WeftAgent_ListInstalledPlugins_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WeftAgentServer).ListInstalledPlugins(ctx, req.(*ListInstalledPluginsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WeftAgent_InstallPlugin_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(InstallPluginRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WeftAgentServer).InstallPlugin(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WeftAgent_InstallPlugin_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WeftAgentServer).InstallPlugin(ctx, req.(*InstallPluginRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // WeftAgent_ServiceDesc is the grpc.ServiceDesc for WeftAgent service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -3964,6 +4110,22 @@ var WeftAgent_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RemoveVMSSHKey",
 			Handler:    _WeftAgent_RemoveVMSSHKey_Handler,
+		},
+		{
+			MethodName: "ListFederationPeers",
+			Handler:    _WeftAgent_ListFederationPeers_Handler,
+		},
+		{
+			MethodName: "ListPluginCatalogue",
+			Handler:    _WeftAgent_ListPluginCatalogue_Handler,
+		},
+		{
+			MethodName: "ListInstalledPlugins",
+			Handler:    _WeftAgent_ListInstalledPlugins_Handler,
+		},
+		{
+			MethodName: "InstallPlugin",
+			Handler:    _WeftAgent_InstallPlugin_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
