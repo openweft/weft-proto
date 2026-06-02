@@ -7,6 +7,14 @@ and this project aims to adhere to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased]
 
+## [v0.4.0] — 2026-06-02
+
+### Added
+
+- `SetHostCordoned` RPC on `WeftAgent` service + `SetHostCordonedRequest{uuid, cordoned}` / `SetHostCordonedResponse{}` messages — flips the per-host cordon flag (idempotent). Drives `weft host cordon` / `weft host uncordon`.
+- `HostInfo.cordoned` (field 14) — surfaces the cordon flag in the registry. Independent of `state` ; a cordoned host stays Active + reachable but the scheduler drops it from candidate sets for new placements.
+- `StartVMRequest.requested_gpus` (field 4) and `StartVMRequest.requested_pci` (field 5) — start-time passthrough requests layered on top of the VM's persisted passthrough config. Mirrors the admission-time surface added to `CreateVMRequest` / `RegisterMicroVMRequest` in v0.3.0.
+
 ## [v0.3.0] — 2026-06-02
 
 ### Added

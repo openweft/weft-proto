@@ -102,7 +102,21 @@ message ListVMsResponse {
 // path. Non-empty + non-self triggers AgentDispatch routing —
 // same gate as RegisterMicroVMRequest.host_uuid.
 
-message StartVMRequest  { string name = 1; string project = 2; string host_uuid = 3; }
+message StartVMRequest  {
+  string name      = 1;
+  string project   = 2;
+  string host_uuid = 3;
+  // requested_gpus / requested_pci add start-time passthrough
+  // requests on top of the VM's persisted passthrough config.
+  // Empty = no start-time additions. Matching semantics mirror
+  // CreateVMRequest.requested_gpus / requested_pci ; the scheduler
+  // validates the chosen host's inventory satisfies every entry,
+  // then the driver attaches the resolved BDFs (vfio-pci on QEMU ;
+  // VZ rejects with InvalidArgument). See
+  // docs/operations/pci-passthrough.md.
+  repeated GPURequest            requested_gpus = 4;
+  repeated PCIPassthroughRequest requested_pci  = 5;
+}
 message StartVMResponse {}
 
 // --- StopVM ---
@@ -918,9 +932,10 @@ service WeftAgent {
   rpc ListHosts      (ListHostsRequest)      returns (ListHostsResponse);
   rpc GetHost        (GetHostRequest)        returns (GetHostResponse);
   rpc HeartbeatHost  (HeartbeatHostRequest)  returns (HeartbeatHostResponse);
-  rpc SetHostState   (SetHostStateRequest)   returns (SetHostStateResponse);
-  rpc SetHostLabels  (SetHostLabelsRequest)  returns (SetHostLabelsResponse);
-  rpc DeleteHost     (DeleteHostRequest)     returns (DeleteHostResponse);
+  rpc SetHostState    (SetHostStateRequest)    returns (SetHostStateResponse);
+  rpc SetHostLabels   (SetHostLabelsRequest)   returns (SetHostLabelsResponse);
+  rpc SetHostCordoned (SetHostCordonedRequest) returns (SetHostCordonedResponse);
+  rpc DeleteHost      (DeleteHostRequest)      returns (DeleteHostResponse);
 
   // PublishShareToProject fans a CubeFS share mount (or, with
   // mount.action="unmount", an unmount) out to every VM in a project over
@@ -1003,6 +1018,13 @@ message HostInfo {
   string state                = 11;
   int64  created_at_unix_ns   = 12;
   int64  last_seen_at_unix_ns = 13;
+  // cordoned, when true, takes this host out of the scheduler's
+  // candidate set for *new* placements ; already-running VMs stay
+  // put. Set/cleared via SetHostCordoned. Independent of `state` —
+  // a cordoned host stays Active + reachable, it just refuses new
+  // work. Implements the upgrade-runbook primitive previously
+  // documented as proposed.
+  bool   cordoned             = 14;
 }
 
 // RegisterHost adds a new host or refreshes an existing one
@@ -1065,6 +1087,15 @@ message SetHostStateResponse {}
 // scheduler's LabelSelectors match against these.
 message SetHostLabelsRequest  { string uuid = 1; map<string, string> labels = 2; }
 message SetHostLabelsResponse {}
+
+// SetHostCordoned flips the host's cordon flag. Cordoned hosts
+// stay Active (existing VMs keep running) but the scheduler drops
+// them from candidate sets for new placements. Idempotent — calling
+// with the current value is a no-op + OK return. Operators use
+// `weft host cordon` / `weft host uncordon`. See upgrade.md for
+// the maintenance-window workflow.
+message SetHostCordonedRequest  { string uuid = 1; bool cordoned = 2; }
+message SetHostCordonedResponse {}
 
 // DeleteHost removes a host from the registry. The operator
 // should drain + stop the host's VMs first ; the server does not
