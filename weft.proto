@@ -748,6 +748,19 @@ message RegisterMicroVMRequest {
   // See CreateVMRequest.requested_gpus for the per-entry contract.
   repeated GPURequest requested_gpus = 9;
   repeated PCIPassthroughRequest requested_pci = 10;
+
+  // OCI image reference, e.g. "ghcr.io/openweft/weft-router:v0.1.0".
+  // When set, the server-side handler pulls the image, materialises
+  // its rootfs in the imagestore cache, synthesises the boot
+  // artefacts (shared weft-microvm-init kernel + initrd, cmdline
+  // "weft.rootfs=virtiofs:rootfs0 console=hvc0"), and assembles the
+  // matching MicroVMShare automatically. Mutually exclusive with
+  // boot_iso / kernel / initrd / cmdline / shares ; the server
+  // returns InvalidArgument on collision. This is the path
+  // weft-network's lifecycle.Ensure uses for weft-router
+  // micro-VMs — the client just passes the image, the server
+  // handles the orchestration.
+  string image = 11;
 }
 message RegisterMicroVMResponse {}
 
