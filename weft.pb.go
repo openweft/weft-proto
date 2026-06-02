@@ -6802,6 +6802,18 @@ type RegisterMicroVMRequest struct {
 	// See CreateVMRequest.requested_gpus for the per-entry contract.
 	RequestedGpus []*GPURequest            `protobuf:"bytes,9,rep,name=requested_gpus,json=requestedGpus,proto3" json:"requested_gpus,omitempty"`
 	RequestedPci  []*PCIPassthroughRequest `protobuf:"bytes,10,rep,name=requested_pci,json=requestedPci,proto3" json:"requested_pci,omitempty"`
+	// OCI image reference, e.g. "ghcr.io/openweft/weft-router:v0.1.0".
+	// When set, the server-side handler pulls the image, materialises
+	// its rootfs in the imagestore cache, synthesises the boot
+	// artefacts (shared weft-microvm-init kernel + initrd, cmdline
+	// "weft.rootfs=virtiofs:rootfs0 console=hvc0"), and assembles the
+	// matching MicroVMShare automatically. Mutually exclusive with
+	// boot_iso / kernel / initrd / cmdline / shares ; the server
+	// returns InvalidArgument on collision. This is the path
+	// weft-network's lifecycle.Ensure uses for weft-router
+	// micro-VMs — the client just passes the image, the server
+	// handles the orchestration.
+	Image         string `protobuf:"bytes,11,opt,name=image,proto3" json:"image,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -6904,6 +6916,13 @@ func (x *RegisterMicroVMRequest) GetRequestedPci() []*PCIPassthroughRequest {
 		return x.RequestedPci
 	}
 	return nil
+}
+
+func (x *RegisterMicroVMRequest) GetImage() string {
+	if x != nil {
+		return x.Image
+	}
+	return ""
 }
 
 type RegisterMicroVMResponse struct {
@@ -14196,7 +14215,7 @@ const file_weft_proto_rawDesc = "" +
 	"\x03tag\x18\x01 \x01(\tR\x03tag\x12\x12\n" +
 	"\x04path\x18\x02 \x01(\tR\x04path\x12\x1b\n" +
 	"\tread_only\x18\x03 \x01(\bR\breadOnly\x12\x14\n" +
-	"\x05clone\x18\x04 \x01(\bR\x05clone\"\xf8\x02\n" +
+	"\x05clone\x18\x04 \x01(\bR\x05clone\"\x8e\x03\n" +
 	"\x16RegisterMicroVMRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x19\n" +
 	"\bboot_iso\x18\x02 \x01(\tR\abootIso\x12-\n" +
@@ -14208,7 +14227,8 @@ const file_weft_proto_rawDesc = "" +
 	"\thost_uuid\x18\b \x01(\tR\bhostUuid\x12:\n" +
 	"\x0erequested_gpus\x18\t \x03(\v2\x13.weft.v1.GPURequestR\rrequestedGpus\x12C\n" +
 	"\rrequested_pci\x18\n" +
-	" \x03(\v2\x1e.weft.v1.PCIPassthroughRequestR\frequestedPci\"\x19\n" +
+	" \x03(\v2\x1e.weft.v1.PCIPassthroughRequestR\frequestedPci\x12\x14\n" +
+	"\x05image\x18\v \x01(\tR\x05image\"\x19\n" +
 	"\x17RegisterMicroVMResponse\"\xab\x01\n" +
 	"\vCubeFSMount\x12\x16\n" +
 	"\x06volume\x18\x01 \x01(\tR\x06volume\x12\x18\n" +
