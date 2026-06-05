@@ -5201,8 +5201,13 @@ type VolumeInfo struct {
 	Format          string                 `protobuf:"bytes,5,opt,name=format,proto3" json:"format,omitempty"`                                         // "raw" | "qcow2"
 	AttachedToUuid  string                 `protobuf:"bytes,6,opt,name=attached_to_uuid,json=attachedToUuid,proto3" json:"attached_to_uuid,omitempty"` // empty = detached
 	CreatedAtUnixNs int64                  `protobuf:"varint,7,opt,name=created_at_unix_ns,json=createdAtUnixNs,proto3" json:"created_at_unix_ns,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// backend picks the storage driver that owns the blocks. "file"
+	// = host-local reflink-aware files (default) ; "block" = replicated
+	// block storage via weft-block. Snapshot revert + backup operations
+	// dispatch on this field and require backend == "block".
+	Backend       string `protobuf:"bytes,8,opt,name=backend,proto3" json:"backend,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *VolumeInfo) Reset() {
@@ -5282,6 +5287,13 @@ func (x *VolumeInfo) GetCreatedAtUnixNs() int64 {
 		return x.CreatedAtUnixNs
 	}
 	return 0
+}
+
+func (x *VolumeInfo) GetBackend() string {
+	if x != nil {
+		return x.Backend
+	}
+	return ""
 }
 
 type ListVolumesRequest struct {
@@ -6447,6 +6459,593 @@ func (*DeleteVolumeSnapshotResponse) Descriptor() ([]byte, []int) {
 	return file_weft_proto_rawDescGZIP(), []int{116}
 }
 
+// RevertVolumeSnapshot rolls a block-backed volume back to an earlier
+// snapshot, IN PLACE. Different from RestoreVolumeSnapshot which clones
+// into a NEW volume. File-backed volumes don't support revert (operators
+// clone-then-rename via Restore). The volume must be detached first.
+type RevertVolumeSnapshotRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Uuid          string                 `protobuf:"bytes,1,opt,name=uuid,proto3" json:"uuid,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RevertVolumeSnapshotRequest) Reset() {
+	*x = RevertVolumeSnapshotRequest{}
+	mi := &file_weft_proto_msgTypes[117]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RevertVolumeSnapshotRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RevertVolumeSnapshotRequest) ProtoMessage() {}
+
+func (x *RevertVolumeSnapshotRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_weft_proto_msgTypes[117]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RevertVolumeSnapshotRequest.ProtoReflect.Descriptor instead.
+func (*RevertVolumeSnapshotRequest) Descriptor() ([]byte, []int) {
+	return file_weft_proto_rawDescGZIP(), []int{117}
+}
+
+func (x *RevertVolumeSnapshotRequest) GetUuid() string {
+	if x != nil {
+		return x.Uuid
+	}
+	return ""
+}
+
+type RevertVolumeSnapshotResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RevertVolumeSnapshotResponse) Reset() {
+	*x = RevertVolumeSnapshotResponse{}
+	mi := &file_weft_proto_msgTypes[118]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RevertVolumeSnapshotResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RevertVolumeSnapshotResponse) ProtoMessage() {}
+
+func (x *RevertVolumeSnapshotResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_weft_proto_msgTypes[118]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RevertVolumeSnapshotResponse.ProtoReflect.Descriptor instead.
+func (*RevertVolumeSnapshotResponse) Descriptor() ([]byte, []int) {
+	return file_weft_proto_rawDescGZIP(), []int{118}
+}
+
+type VolumeBackupInfo struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Url             string                 `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`                                       // target-specific URL the backup lives at
+	VolumeUuid      string                 `protobuf:"bytes,2,opt,name=volume_uuid,json=volumeUuid,proto3" json:"volume_uuid,omitempty"`       // origin volume (informational ; survives delete)
+	SnapshotUuid    string                 `protobuf:"bytes,3,opt,name=snapshot_uuid,json=snapshotUuid,proto3" json:"snapshot_uuid,omitempty"` // the snapshot the backup was taken from
+	Project         string                 `protobuf:"bytes,4,opt,name=project,proto3" json:"project,omitempty"`
+	SizeBytes       int64                  `protobuf:"varint,5,opt,name=size_bytes,json=sizeBytes,proto3" json:"size_bytes,omitempty"`
+	CreatedAtUnixNs int64                  `protobuf:"varint,6,opt,name=created_at_unix_ns,json=createdAtUnixNs,proto3" json:"created_at_unix_ns,omitempty"`
+	State           string                 `protobuf:"bytes,7,opt,name=state,proto3" json:"state,omitempty"` // "in-progress" | "complete" | "error"
+	Error           string                 `protobuf:"bytes,8,opt,name=error,proto3" json:"error,omitempty"` // populated when state == "error"
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *VolumeBackupInfo) Reset() {
+	*x = VolumeBackupInfo{}
+	mi := &file_weft_proto_msgTypes[119]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *VolumeBackupInfo) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*VolumeBackupInfo) ProtoMessage() {}
+
+func (x *VolumeBackupInfo) ProtoReflect() protoreflect.Message {
+	mi := &file_weft_proto_msgTypes[119]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use VolumeBackupInfo.ProtoReflect.Descriptor instead.
+func (*VolumeBackupInfo) Descriptor() ([]byte, []int) {
+	return file_weft_proto_rawDescGZIP(), []int{119}
+}
+
+func (x *VolumeBackupInfo) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+func (x *VolumeBackupInfo) GetVolumeUuid() string {
+	if x != nil {
+		return x.VolumeUuid
+	}
+	return ""
+}
+
+func (x *VolumeBackupInfo) GetSnapshotUuid() string {
+	if x != nil {
+		return x.SnapshotUuid
+	}
+	return ""
+}
+
+func (x *VolumeBackupInfo) GetProject() string {
+	if x != nil {
+		return x.Project
+	}
+	return ""
+}
+
+func (x *VolumeBackupInfo) GetSizeBytes() int64 {
+	if x != nil {
+		return x.SizeBytes
+	}
+	return 0
+}
+
+func (x *VolumeBackupInfo) GetCreatedAtUnixNs() int64 {
+	if x != nil {
+		return x.CreatedAtUnixNs
+	}
+	return 0
+}
+
+func (x *VolumeBackupInfo) GetState() string {
+	if x != nil {
+		return x.State
+	}
+	return ""
+}
+
+func (x *VolumeBackupInfo) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+type CreateVolumeBackupRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	VolumeUuid    string                 `protobuf:"bytes,1,opt,name=volume_uuid,json=volumeUuid,proto3" json:"volume_uuid,omitempty"`
+	SnapshotUuid  string                 `protobuf:"bytes,2,opt,name=snapshot_uuid,json=snapshotUuid,proto3" json:"snapshot_uuid,omitempty"` // must already exist (taken via CreateVolumeSnapshot)
+	Target        string                 `protobuf:"bytes,3,opt,name=target,proto3" json:"target,omitempty"`                                 // s3:// or sftp:// URL
+	Project       string                 `protobuf:"bytes,4,opt,name=project,proto3" json:"project,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateVolumeBackupRequest) Reset() {
+	*x = CreateVolumeBackupRequest{}
+	mi := &file_weft_proto_msgTypes[120]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateVolumeBackupRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateVolumeBackupRequest) ProtoMessage() {}
+
+func (x *CreateVolumeBackupRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_weft_proto_msgTypes[120]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateVolumeBackupRequest.ProtoReflect.Descriptor instead.
+func (*CreateVolumeBackupRequest) Descriptor() ([]byte, []int) {
+	return file_weft_proto_rawDescGZIP(), []int{120}
+}
+
+func (x *CreateVolumeBackupRequest) GetVolumeUuid() string {
+	if x != nil {
+		return x.VolumeUuid
+	}
+	return ""
+}
+
+func (x *CreateVolumeBackupRequest) GetSnapshotUuid() string {
+	if x != nil {
+		return x.SnapshotUuid
+	}
+	return ""
+}
+
+func (x *CreateVolumeBackupRequest) GetTarget() string {
+	if x != nil {
+		return x.Target
+	}
+	return ""
+}
+
+func (x *CreateVolumeBackupRequest) GetProject() string {
+	if x != nil {
+		return x.Project
+	}
+	return ""
+}
+
+type CreateVolumeBackupResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Backup        *VolumeBackupInfo      `protobuf:"bytes,1,opt,name=backup,proto3" json:"backup,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateVolumeBackupResponse) Reset() {
+	*x = CreateVolumeBackupResponse{}
+	mi := &file_weft_proto_msgTypes[121]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateVolumeBackupResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateVolumeBackupResponse) ProtoMessage() {}
+
+func (x *CreateVolumeBackupResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_weft_proto_msgTypes[121]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateVolumeBackupResponse.ProtoReflect.Descriptor instead.
+func (*CreateVolumeBackupResponse) Descriptor() ([]byte, []int) {
+	return file_weft_proto_rawDescGZIP(), []int{121}
+}
+
+func (x *CreateVolumeBackupResponse) GetBackup() *VolumeBackupInfo {
+	if x != nil {
+		return x.Backup
+	}
+	return nil
+}
+
+type ListVolumeBackupsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Target        string                 `protobuf:"bytes,1,opt,name=target,proto3" json:"target,omitempty"`                           // required (backupstore is target-keyed)
+	VolumeUuid    string                 `protobuf:"bytes,2,opt,name=volume_uuid,json=volumeUuid,proto3" json:"volume_uuid,omitempty"` // empty → all volumes at the target
+	Project       string                 `protobuf:"bytes,3,opt,name=project,proto3" json:"project,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListVolumeBackupsRequest) Reset() {
+	*x = ListVolumeBackupsRequest{}
+	mi := &file_weft_proto_msgTypes[122]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListVolumeBackupsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListVolumeBackupsRequest) ProtoMessage() {}
+
+func (x *ListVolumeBackupsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_weft_proto_msgTypes[122]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListVolumeBackupsRequest.ProtoReflect.Descriptor instead.
+func (*ListVolumeBackupsRequest) Descriptor() ([]byte, []int) {
+	return file_weft_proto_rawDescGZIP(), []int{122}
+}
+
+func (x *ListVolumeBackupsRequest) GetTarget() string {
+	if x != nil {
+		return x.Target
+	}
+	return ""
+}
+
+func (x *ListVolumeBackupsRequest) GetVolumeUuid() string {
+	if x != nil {
+		return x.VolumeUuid
+	}
+	return ""
+}
+
+func (x *ListVolumeBackupsRequest) GetProject() string {
+	if x != nil {
+		return x.Project
+	}
+	return ""
+}
+
+type ListVolumeBackupsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Backups       []*VolumeBackupInfo    `protobuf:"bytes,1,rep,name=backups,proto3" json:"backups,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListVolumeBackupsResponse) Reset() {
+	*x = ListVolumeBackupsResponse{}
+	mi := &file_weft_proto_msgTypes[123]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListVolumeBackupsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListVolumeBackupsResponse) ProtoMessage() {}
+
+func (x *ListVolumeBackupsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_weft_proto_msgTypes[123]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListVolumeBackupsResponse.ProtoReflect.Descriptor instead.
+func (*ListVolumeBackupsResponse) Descriptor() ([]byte, []int) {
+	return file_weft_proto_rawDescGZIP(), []int{123}
+}
+
+func (x *ListVolumeBackupsResponse) GetBackups() []*VolumeBackupInfo {
+	if x != nil {
+		return x.Backups
+	}
+	return nil
+}
+
+type DeleteVolumeBackupRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Url           string                 `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteVolumeBackupRequest) Reset() {
+	*x = DeleteVolumeBackupRequest{}
+	mi := &file_weft_proto_msgTypes[124]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteVolumeBackupRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteVolumeBackupRequest) ProtoMessage() {}
+
+func (x *DeleteVolumeBackupRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_weft_proto_msgTypes[124]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteVolumeBackupRequest.ProtoReflect.Descriptor instead.
+func (*DeleteVolumeBackupRequest) Descriptor() ([]byte, []int) {
+	return file_weft_proto_rawDescGZIP(), []int{124}
+}
+
+func (x *DeleteVolumeBackupRequest) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+type DeleteVolumeBackupResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteVolumeBackupResponse) Reset() {
+	*x = DeleteVolumeBackupResponse{}
+	mi := &file_weft_proto_msgTypes[125]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteVolumeBackupResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteVolumeBackupResponse) ProtoMessage() {}
+
+func (x *DeleteVolumeBackupResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_weft_proto_msgTypes[125]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteVolumeBackupResponse.ProtoReflect.Descriptor instead.
+func (*DeleteVolumeBackupResponse) Descriptor() ([]byte, []int) {
+	return file_weft_proto_rawDescGZIP(), []int{125}
+}
+
+// RestoreVolumeBackup creates a NEW volume populated from the backup at
+// `url`. Same shape as RestoreVolumeSnapshot — backup → fresh volume,
+// never mutating the source.
+type RestoreVolumeBackupRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Url           string                 `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
+	NewVolumeName string                 `protobuf:"bytes,2,opt,name=new_volume_name,json=newVolumeName,proto3" json:"new_volume_name,omitempty"`
+	Project       string                 `protobuf:"bytes,3,opt,name=project,proto3" json:"project,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RestoreVolumeBackupRequest) Reset() {
+	*x = RestoreVolumeBackupRequest{}
+	mi := &file_weft_proto_msgTypes[126]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RestoreVolumeBackupRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RestoreVolumeBackupRequest) ProtoMessage() {}
+
+func (x *RestoreVolumeBackupRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_weft_proto_msgTypes[126]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RestoreVolumeBackupRequest.ProtoReflect.Descriptor instead.
+func (*RestoreVolumeBackupRequest) Descriptor() ([]byte, []int) {
+	return file_weft_proto_rawDescGZIP(), []int{126}
+}
+
+func (x *RestoreVolumeBackupRequest) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+func (x *RestoreVolumeBackupRequest) GetNewVolumeName() string {
+	if x != nil {
+		return x.NewVolumeName
+	}
+	return ""
+}
+
+func (x *RestoreVolumeBackupRequest) GetProject() string {
+	if x != nil {
+		return x.Project
+	}
+	return ""
+}
+
+type RestoreVolumeBackupResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Volume        *VolumeInfo            `protobuf:"bytes,1,opt,name=volume,proto3" json:"volume,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RestoreVolumeBackupResponse) Reset() {
+	*x = RestoreVolumeBackupResponse{}
+	mi := &file_weft_proto_msgTypes[127]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RestoreVolumeBackupResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RestoreVolumeBackupResponse) ProtoMessage() {}
+
+func (x *RestoreVolumeBackupResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_weft_proto_msgTypes[127]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RestoreVolumeBackupResponse.ProtoReflect.Descriptor instead.
+func (*RestoreVolumeBackupResponse) Descriptor() ([]byte, []int) {
+	return file_weft_proto_rawDescGZIP(), []int{127}
+}
+
+func (x *RestoreVolumeBackupResponse) GetVolume() *VolumeInfo {
+	if x != nil {
+		return x.Volume
+	}
+	return nil
+}
+
 // PlatformEvent is one event published on weft's bus. Schema is
 // deliberately the same shape as TimingEvent so the wire reuses
 // the operator's existing mental model: kind, ts, opaque meta.
@@ -6466,7 +7065,7 @@ type PlatformEvent struct {
 
 func (x *PlatformEvent) Reset() {
 	*x = PlatformEvent{}
-	mi := &file_weft_proto_msgTypes[117]
+	mi := &file_weft_proto_msgTypes[128]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6478,7 +7077,7 @@ func (x *PlatformEvent) String() string {
 func (*PlatformEvent) ProtoMessage() {}
 
 func (x *PlatformEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[117]
+	mi := &file_weft_proto_msgTypes[128]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6491,7 +7090,7 @@ func (x *PlatformEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PlatformEvent.ProtoReflect.Descriptor instead.
 func (*PlatformEvent) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{117}
+	return file_weft_proto_rawDescGZIP(), []int{128}
 }
 
 func (x *PlatformEvent) GetTsUnixNs() int64 {
@@ -6555,7 +7154,7 @@ type WatchEventsRequest struct {
 
 func (x *WatchEventsRequest) Reset() {
 	*x = WatchEventsRequest{}
-	mi := &file_weft_proto_msgTypes[118]
+	mi := &file_weft_proto_msgTypes[129]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6567,7 +7166,7 @@ func (x *WatchEventsRequest) String() string {
 func (*WatchEventsRequest) ProtoMessage() {}
 
 func (x *WatchEventsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[118]
+	mi := &file_weft_proto_msgTypes[129]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6580,7 +7179,7 @@ func (x *WatchEventsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WatchEventsRequest.ProtoReflect.Descriptor instead.
 func (*WatchEventsRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{118}
+	return file_weft_proto_rawDescGZIP(), []int{129}
 }
 
 func (x *WatchEventsRequest) GetKindPrefix() []string {
@@ -6620,7 +7219,7 @@ type RenderNATSAuthorizationRequest struct {
 
 func (x *RenderNATSAuthorizationRequest) Reset() {
 	*x = RenderNATSAuthorizationRequest{}
-	mi := &file_weft_proto_msgTypes[119]
+	mi := &file_weft_proto_msgTypes[130]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6632,7 +7231,7 @@ func (x *RenderNATSAuthorizationRequest) String() string {
 func (*RenderNATSAuthorizationRequest) ProtoMessage() {}
 
 func (x *RenderNATSAuthorizationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[119]
+	mi := &file_weft_proto_msgTypes[130]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6645,7 +7244,7 @@ func (x *RenderNATSAuthorizationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RenderNATSAuthorizationRequest.ProtoReflect.Descriptor instead.
 func (*RenderNATSAuthorizationRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{119}
+	return file_weft_proto_rawDescGZIP(), []int{130}
 }
 
 func (x *RenderNATSAuthorizationRequest) GetAdminPubkey() string {
@@ -6667,7 +7266,7 @@ type RenderNATSAuthorizationResponse struct {
 
 func (x *RenderNATSAuthorizationResponse) Reset() {
 	*x = RenderNATSAuthorizationResponse{}
-	mi := &file_weft_proto_msgTypes[120]
+	mi := &file_weft_proto_msgTypes[131]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6679,7 +7278,7 @@ func (x *RenderNATSAuthorizationResponse) String() string {
 func (*RenderNATSAuthorizationResponse) ProtoMessage() {}
 
 func (x *RenderNATSAuthorizationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[120]
+	mi := &file_weft_proto_msgTypes[131]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6692,7 +7291,7 @@ func (x *RenderNATSAuthorizationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RenderNATSAuthorizationResponse.ProtoReflect.Descriptor instead.
 func (*RenderNATSAuthorizationResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{120}
+	return file_weft_proto_rawDescGZIP(), []int{131}
 }
 
 func (x *RenderNATSAuthorizationResponse) GetConfig() []byte {
@@ -6724,7 +7323,7 @@ type MicroVMShare struct {
 
 func (x *MicroVMShare) Reset() {
 	*x = MicroVMShare{}
-	mi := &file_weft_proto_msgTypes[121]
+	mi := &file_weft_proto_msgTypes[132]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6736,7 +7335,7 @@ func (x *MicroVMShare) String() string {
 func (*MicroVMShare) ProtoMessage() {}
 
 func (x *MicroVMShare) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[121]
+	mi := &file_weft_proto_msgTypes[132]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6749,7 +7348,7 @@ func (x *MicroVMShare) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MicroVMShare.ProtoReflect.Descriptor instead.
 func (*MicroVMShare) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{121}
+	return file_weft_proto_rawDescGZIP(), []int{132}
 }
 
 func (x *MicroVMShare) GetTag() string {
@@ -6844,7 +7443,7 @@ type RegisterMicroVMRequest struct {
 
 func (x *RegisterMicroVMRequest) Reset() {
 	*x = RegisterMicroVMRequest{}
-	mi := &file_weft_proto_msgTypes[122]
+	mi := &file_weft_proto_msgTypes[133]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6856,7 +7455,7 @@ func (x *RegisterMicroVMRequest) String() string {
 func (*RegisterMicroVMRequest) ProtoMessage() {}
 
 func (x *RegisterMicroVMRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[122]
+	mi := &file_weft_proto_msgTypes[133]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6869,7 +7468,7 @@ func (x *RegisterMicroVMRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegisterMicroVMRequest.ProtoReflect.Descriptor instead.
 func (*RegisterMicroVMRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{122}
+	return file_weft_proto_rawDescGZIP(), []int{133}
 }
 
 func (x *RegisterMicroVMRequest) GetName() string {
@@ -6957,7 +7556,7 @@ type RegisterMicroVMResponse struct {
 
 func (x *RegisterMicroVMResponse) Reset() {
 	*x = RegisterMicroVMResponse{}
-	mi := &file_weft_proto_msgTypes[123]
+	mi := &file_weft_proto_msgTypes[134]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6969,7 +7568,7 @@ func (x *RegisterMicroVMResponse) String() string {
 func (*RegisterMicroVMResponse) ProtoMessage() {}
 
 func (x *RegisterMicroVMResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[123]
+	mi := &file_weft_proto_msgTypes[134]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6982,7 +7581,7 @@ func (x *RegisterMicroVMResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegisterMicroVMResponse.ProtoReflect.Descriptor instead.
 func (*RegisterMicroVMResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{123}
+	return file_weft_proto_rawDescGZIP(), []int{134}
 }
 
 type CubeFSMount struct {
@@ -6999,7 +7598,7 @@ type CubeFSMount struct {
 
 func (x *CubeFSMount) Reset() {
 	*x = CubeFSMount{}
-	mi := &file_weft_proto_msgTypes[124]
+	mi := &file_weft_proto_msgTypes[135]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7011,7 +7610,7 @@ func (x *CubeFSMount) String() string {
 func (*CubeFSMount) ProtoMessage() {}
 
 func (x *CubeFSMount) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[124]
+	mi := &file_weft_proto_msgTypes[135]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7024,7 +7623,7 @@ func (x *CubeFSMount) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CubeFSMount.ProtoReflect.Descriptor instead.
 func (*CubeFSMount) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{124}
+	return file_weft_proto_rawDescGZIP(), []int{135}
 }
 
 func (x *CubeFSMount) GetVolume() string {
@@ -7083,7 +7682,7 @@ type ShareMount struct {
 
 func (x *ShareMount) Reset() {
 	*x = ShareMount{}
-	mi := &file_weft_proto_msgTypes[125]
+	mi := &file_weft_proto_msgTypes[136]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7095,7 +7694,7 @@ func (x *ShareMount) String() string {
 func (*ShareMount) ProtoMessage() {}
 
 func (x *ShareMount) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[125]
+	mi := &file_weft_proto_msgTypes[136]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7108,7 +7707,7 @@ func (x *ShareMount) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ShareMount.ProtoReflect.Descriptor instead.
 func (*ShareMount) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{125}
+	return file_weft_proto_rawDescGZIP(), []int{136}
 }
 
 func (x *ShareMount) GetId() string {
@@ -7163,7 +7762,7 @@ type PublishShareToProjectRequest struct {
 
 func (x *PublishShareToProjectRequest) Reset() {
 	*x = PublishShareToProjectRequest{}
-	mi := &file_weft_proto_msgTypes[126]
+	mi := &file_weft_proto_msgTypes[137]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7175,7 +7774,7 @@ func (x *PublishShareToProjectRequest) String() string {
 func (*PublishShareToProjectRequest) ProtoMessage() {}
 
 func (x *PublishShareToProjectRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[126]
+	mi := &file_weft_proto_msgTypes[137]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7188,7 +7787,7 @@ func (x *PublishShareToProjectRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PublishShareToProjectRequest.ProtoReflect.Descriptor instead.
 func (*PublishShareToProjectRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{126}
+	return file_weft_proto_rawDescGZIP(), []int{137}
 }
 
 func (x *PublishShareToProjectRequest) GetProjectUuid() string {
@@ -7214,7 +7813,7 @@ type PublishShareToProjectResponse struct {
 
 func (x *PublishShareToProjectResponse) Reset() {
 	*x = PublishShareToProjectResponse{}
-	mi := &file_weft_proto_msgTypes[127]
+	mi := &file_weft_proto_msgTypes[138]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7226,7 +7825,7 @@ func (x *PublishShareToProjectResponse) String() string {
 func (*PublishShareToProjectResponse) ProtoMessage() {}
 
 func (x *PublishShareToProjectResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[127]
+	mi := &file_weft_proto_msgTypes[138]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7239,7 +7838,7 @@ func (x *PublishShareToProjectResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PublishShareToProjectResponse.ProtoReflect.Descriptor instead.
 func (*PublishShareToProjectResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{127}
+	return file_weft_proto_rawDescGZIP(), []int{138}
 }
 
 func (x *PublishShareToProjectResponse) GetVmCount() uint32 {
@@ -7264,7 +7863,7 @@ type FederationPeerInfo struct {
 
 func (x *FederationPeerInfo) Reset() {
 	*x = FederationPeerInfo{}
-	mi := &file_weft_proto_msgTypes[128]
+	mi := &file_weft_proto_msgTypes[139]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7276,7 +7875,7 @@ func (x *FederationPeerInfo) String() string {
 func (*FederationPeerInfo) ProtoMessage() {}
 
 func (x *FederationPeerInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[128]
+	mi := &file_weft_proto_msgTypes[139]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7289,7 +7888,7 @@ func (x *FederationPeerInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FederationPeerInfo.ProtoReflect.Descriptor instead.
 func (*FederationPeerInfo) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{128}
+	return file_weft_proto_rawDescGZIP(), []int{139}
 }
 
 func (x *FederationPeerInfo) GetName() string {
@@ -7349,7 +7948,7 @@ type ListFederationPeersRequest struct {
 
 func (x *ListFederationPeersRequest) Reset() {
 	*x = ListFederationPeersRequest{}
-	mi := &file_weft_proto_msgTypes[129]
+	mi := &file_weft_proto_msgTypes[140]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7361,7 +7960,7 @@ func (x *ListFederationPeersRequest) String() string {
 func (*ListFederationPeersRequest) ProtoMessage() {}
 
 func (x *ListFederationPeersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[129]
+	mi := &file_weft_proto_msgTypes[140]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7374,7 +7973,7 @@ func (x *ListFederationPeersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListFederationPeersRequest.ProtoReflect.Descriptor instead.
 func (*ListFederationPeersRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{129}
+	return file_weft_proto_rawDescGZIP(), []int{140}
 }
 
 type ListFederationPeersResponse struct {
@@ -7386,7 +7985,7 @@ type ListFederationPeersResponse struct {
 
 func (x *ListFederationPeersResponse) Reset() {
 	*x = ListFederationPeersResponse{}
-	mi := &file_weft_proto_msgTypes[130]
+	mi := &file_weft_proto_msgTypes[141]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7398,7 +7997,7 @@ func (x *ListFederationPeersResponse) String() string {
 func (*ListFederationPeersResponse) ProtoMessage() {}
 
 func (x *ListFederationPeersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[130]
+	mi := &file_weft_proto_msgTypes[141]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7411,7 +8010,7 @@ func (x *ListFederationPeersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListFederationPeersResponse.ProtoReflect.Descriptor instead.
 func (*ListFederationPeersResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{130}
+	return file_weft_proto_rawDescGZIP(), []int{141}
 }
 
 func (x *ListFederationPeersResponse) GetPeers() []*FederationPeerInfo {
@@ -7435,7 +8034,7 @@ type PluginInput struct {
 
 func (x *PluginInput) Reset() {
 	*x = PluginInput{}
-	mi := &file_weft_proto_msgTypes[131]
+	mi := &file_weft_proto_msgTypes[142]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7447,7 +8046,7 @@ func (x *PluginInput) String() string {
 func (*PluginInput) ProtoMessage() {}
 
 func (x *PluginInput) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[131]
+	mi := &file_weft_proto_msgTypes[142]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7460,7 +8059,7 @@ func (x *PluginInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PluginInput.ProtoReflect.Descriptor instead.
 func (*PluginInput) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{131}
+	return file_weft_proto_rawDescGZIP(), []int{142}
 }
 
 func (x *PluginInput) GetName() string {
@@ -7518,7 +8117,7 @@ type PluginCatalogueEntry struct {
 
 func (x *PluginCatalogueEntry) Reset() {
 	*x = PluginCatalogueEntry{}
-	mi := &file_weft_proto_msgTypes[132]
+	mi := &file_weft_proto_msgTypes[143]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7530,7 +8129,7 @@ func (x *PluginCatalogueEntry) String() string {
 func (*PluginCatalogueEntry) ProtoMessage() {}
 
 func (x *PluginCatalogueEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[132]
+	mi := &file_weft_proto_msgTypes[143]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7543,7 +8142,7 @@ func (x *PluginCatalogueEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PluginCatalogueEntry.ProtoReflect.Descriptor instead.
 func (*PluginCatalogueEntry) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{132}
+	return file_weft_proto_rawDescGZIP(), []int{143}
 }
 
 func (x *PluginCatalogueEntry) GetName() string {
@@ -7595,7 +8194,7 @@ type PluginInstance struct {
 
 func (x *PluginInstance) Reset() {
 	*x = PluginInstance{}
-	mi := &file_weft_proto_msgTypes[133]
+	mi := &file_weft_proto_msgTypes[144]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7607,7 +8206,7 @@ func (x *PluginInstance) String() string {
 func (*PluginInstance) ProtoMessage() {}
 
 func (x *PluginInstance) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[133]
+	mi := &file_weft_proto_msgTypes[144]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7620,7 +8219,7 @@ func (x *PluginInstance) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PluginInstance.ProtoReflect.Descriptor instead.
 func (*PluginInstance) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{133}
+	return file_weft_proto_rawDescGZIP(), []int{144}
 }
 
 func (x *PluginInstance) GetName() string {
@@ -7673,7 +8272,7 @@ type ListPluginCatalogueRequest struct {
 
 func (x *ListPluginCatalogueRequest) Reset() {
 	*x = ListPluginCatalogueRequest{}
-	mi := &file_weft_proto_msgTypes[134]
+	mi := &file_weft_proto_msgTypes[145]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7685,7 +8284,7 @@ func (x *ListPluginCatalogueRequest) String() string {
 func (*ListPluginCatalogueRequest) ProtoMessage() {}
 
 func (x *ListPluginCatalogueRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[134]
+	mi := &file_weft_proto_msgTypes[145]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7698,7 +8297,7 @@ func (x *ListPluginCatalogueRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPluginCatalogueRequest.ProtoReflect.Descriptor instead.
 func (*ListPluginCatalogueRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{134}
+	return file_weft_proto_rawDescGZIP(), []int{145}
 }
 
 type ListPluginCatalogueResponse struct {
@@ -7710,7 +8309,7 @@ type ListPluginCatalogueResponse struct {
 
 func (x *ListPluginCatalogueResponse) Reset() {
 	*x = ListPluginCatalogueResponse{}
-	mi := &file_weft_proto_msgTypes[135]
+	mi := &file_weft_proto_msgTypes[146]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7722,7 +8321,7 @@ func (x *ListPluginCatalogueResponse) String() string {
 func (*ListPluginCatalogueResponse) ProtoMessage() {}
 
 func (x *ListPluginCatalogueResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[135]
+	mi := &file_weft_proto_msgTypes[146]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7735,7 +8334,7 @@ func (x *ListPluginCatalogueResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPluginCatalogueResponse.ProtoReflect.Descriptor instead.
 func (*ListPluginCatalogueResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{135}
+	return file_weft_proto_rawDescGZIP(), []int{146}
 }
 
 func (x *ListPluginCatalogueResponse) GetEntries() []*PluginCatalogueEntry {
@@ -7753,7 +8352,7 @@ type ListInstalledPluginsRequest struct {
 
 func (x *ListInstalledPluginsRequest) Reset() {
 	*x = ListInstalledPluginsRequest{}
-	mi := &file_weft_proto_msgTypes[136]
+	mi := &file_weft_proto_msgTypes[147]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7765,7 +8364,7 @@ func (x *ListInstalledPluginsRequest) String() string {
 func (*ListInstalledPluginsRequest) ProtoMessage() {}
 
 func (x *ListInstalledPluginsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[136]
+	mi := &file_weft_proto_msgTypes[147]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7778,7 +8377,7 @@ func (x *ListInstalledPluginsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListInstalledPluginsRequest.ProtoReflect.Descriptor instead.
 func (*ListInstalledPluginsRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{136}
+	return file_weft_proto_rawDescGZIP(), []int{147}
 }
 
 type ListInstalledPluginsResponse struct {
@@ -7790,7 +8389,7 @@ type ListInstalledPluginsResponse struct {
 
 func (x *ListInstalledPluginsResponse) Reset() {
 	*x = ListInstalledPluginsResponse{}
-	mi := &file_weft_proto_msgTypes[137]
+	mi := &file_weft_proto_msgTypes[148]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7802,7 +8401,7 @@ func (x *ListInstalledPluginsResponse) String() string {
 func (*ListInstalledPluginsResponse) ProtoMessage() {}
 
 func (x *ListInstalledPluginsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[137]
+	mi := &file_weft_proto_msgTypes[148]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7815,7 +8414,7 @@ func (x *ListInstalledPluginsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListInstalledPluginsResponse.ProtoReflect.Descriptor instead.
 func (*ListInstalledPluginsResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{137}
+	return file_weft_proto_rawDescGZIP(), []int{148}
 }
 
 func (x *ListInstalledPluginsResponse) GetInstances() []*PluginInstance {
@@ -7836,7 +8435,7 @@ type InstallPluginRequest struct {
 
 func (x *InstallPluginRequest) Reset() {
 	*x = InstallPluginRequest{}
-	mi := &file_weft_proto_msgTypes[138]
+	mi := &file_weft_proto_msgTypes[149]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7848,7 +8447,7 @@ func (x *InstallPluginRequest) String() string {
 func (*InstallPluginRequest) ProtoMessage() {}
 
 func (x *InstallPluginRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[138]
+	mi := &file_weft_proto_msgTypes[149]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7861,7 +8460,7 @@ func (x *InstallPluginRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InstallPluginRequest.ProtoReflect.Descriptor instead.
 func (*InstallPluginRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{138}
+	return file_weft_proto_rawDescGZIP(), []int{149}
 }
 
 func (x *InstallPluginRequest) GetName() string {
@@ -7894,7 +8493,7 @@ type InstallPluginResponse struct {
 
 func (x *InstallPluginResponse) Reset() {
 	*x = InstallPluginResponse{}
-	mi := &file_weft_proto_msgTypes[139]
+	mi := &file_weft_proto_msgTypes[150]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7906,7 +8505,7 @@ func (x *InstallPluginResponse) String() string {
 func (*InstallPluginResponse) ProtoMessage() {}
 
 func (x *InstallPluginResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[139]
+	mi := &file_weft_proto_msgTypes[150]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7919,7 +8518,7 @@ func (x *InstallPluginResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InstallPluginResponse.ProtoReflect.Descriptor instead.
 func (*InstallPluginResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{139}
+	return file_weft_proto_rawDescGZIP(), []int{150}
 }
 
 func (x *InstallPluginResponse) GetInstanceUuid() string {
@@ -7961,7 +8560,7 @@ type HostInfo struct {
 
 func (x *HostInfo) Reset() {
 	*x = HostInfo{}
-	mi := &file_weft_proto_msgTypes[140]
+	mi := &file_weft_proto_msgTypes[151]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7973,7 +8572,7 @@ func (x *HostInfo) String() string {
 func (*HostInfo) ProtoMessage() {}
 
 func (x *HostInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[140]
+	mi := &file_weft_proto_msgTypes[151]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7986,7 +8585,7 @@ func (x *HostInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HostInfo.ProtoReflect.Descriptor instead.
 func (*HostInfo) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{140}
+	return file_weft_proto_rawDescGZIP(), []int{151}
 }
 
 func (x *HostInfo) GetUuid() string {
@@ -8110,7 +8709,7 @@ type RegisterHostRequest struct {
 
 func (x *RegisterHostRequest) Reset() {
 	*x = RegisterHostRequest{}
-	mi := &file_weft_proto_msgTypes[141]
+	mi := &file_weft_proto_msgTypes[152]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8122,7 +8721,7 @@ func (x *RegisterHostRequest) String() string {
 func (*RegisterHostRequest) ProtoMessage() {}
 
 func (x *RegisterHostRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[141]
+	mi := &file_weft_proto_msgTypes[152]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8135,7 +8734,7 @@ func (x *RegisterHostRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegisterHostRequest.ProtoReflect.Descriptor instead.
 func (*RegisterHostRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{141}
+	return file_weft_proto_rawDescGZIP(), []int{152}
 }
 
 func (x *RegisterHostRequest) GetUuid() string {
@@ -8217,7 +8816,7 @@ type RegisterHostResponse struct {
 
 func (x *RegisterHostResponse) Reset() {
 	*x = RegisterHostResponse{}
-	mi := &file_weft_proto_msgTypes[142]
+	mi := &file_weft_proto_msgTypes[153]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8229,7 +8828,7 @@ func (x *RegisterHostResponse) String() string {
 func (*RegisterHostResponse) ProtoMessage() {}
 
 func (x *RegisterHostResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[142]
+	mi := &file_weft_proto_msgTypes[153]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8242,7 +8841,7 @@ func (x *RegisterHostResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegisterHostResponse.ProtoReflect.Descriptor instead.
 func (*RegisterHostResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{142}
+	return file_weft_proto_rawDescGZIP(), []int{153}
 }
 
 func (x *RegisterHostResponse) GetHost() *HostInfo {
@@ -8265,7 +8864,7 @@ type ListHostsRequest struct {
 
 func (x *ListHostsRequest) Reset() {
 	*x = ListHostsRequest{}
-	mi := &file_weft_proto_msgTypes[143]
+	mi := &file_weft_proto_msgTypes[154]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8277,7 +8876,7 @@ func (x *ListHostsRequest) String() string {
 func (*ListHostsRequest) ProtoMessage() {}
 
 func (x *ListHostsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[143]
+	mi := &file_weft_proto_msgTypes[154]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8290,7 +8889,7 @@ func (x *ListHostsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListHostsRequest.ProtoReflect.Descriptor instead.
 func (*ListHostsRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{143}
+	return file_weft_proto_rawDescGZIP(), []int{154}
 }
 
 func (x *ListHostsRequest) GetAz() string {
@@ -8331,7 +8930,7 @@ type ListHostsResponse struct {
 
 func (x *ListHostsResponse) Reset() {
 	*x = ListHostsResponse{}
-	mi := &file_weft_proto_msgTypes[144]
+	mi := &file_weft_proto_msgTypes[155]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8343,7 +8942,7 @@ func (x *ListHostsResponse) String() string {
 func (*ListHostsResponse) ProtoMessage() {}
 
 func (x *ListHostsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[144]
+	mi := &file_weft_proto_msgTypes[155]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8356,7 +8955,7 @@ func (x *ListHostsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListHostsResponse.ProtoReflect.Descriptor instead.
 func (*ListHostsResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{144}
+	return file_weft_proto_rawDescGZIP(), []int{155}
 }
 
 func (x *ListHostsResponse) GetHosts() []*HostInfo {
@@ -8393,7 +8992,7 @@ type GetHostRequest struct {
 
 func (x *GetHostRequest) Reset() {
 	*x = GetHostRequest{}
-	mi := &file_weft_proto_msgTypes[145]
+	mi := &file_weft_proto_msgTypes[156]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8405,7 +9004,7 @@ func (x *GetHostRequest) String() string {
 func (*GetHostRequest) ProtoMessage() {}
 
 func (x *GetHostRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[145]
+	mi := &file_weft_proto_msgTypes[156]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8418,7 +9017,7 @@ func (x *GetHostRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetHostRequest.ProtoReflect.Descriptor instead.
 func (*GetHostRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{145}
+	return file_weft_proto_rawDescGZIP(), []int{156}
 }
 
 func (x *GetHostRequest) GetUuid() string {
@@ -8444,7 +9043,7 @@ type GetHostResponse struct {
 
 func (x *GetHostResponse) Reset() {
 	*x = GetHostResponse{}
-	mi := &file_weft_proto_msgTypes[146]
+	mi := &file_weft_proto_msgTypes[157]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8456,7 +9055,7 @@ func (x *GetHostResponse) String() string {
 func (*GetHostResponse) ProtoMessage() {}
 
 func (x *GetHostResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[146]
+	mi := &file_weft_proto_msgTypes[157]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8469,7 +9068,7 @@ func (x *GetHostResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetHostResponse.ProtoReflect.Descriptor instead.
 func (*GetHostResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{146}
+	return file_weft_proto_rawDescGZIP(), []int{157}
 }
 
 func (x *GetHostResponse) GetHost() *HostInfo {
@@ -8491,7 +9090,7 @@ type HeartbeatHostRequest struct {
 
 func (x *HeartbeatHostRequest) Reset() {
 	*x = HeartbeatHostRequest{}
-	mi := &file_weft_proto_msgTypes[147]
+	mi := &file_weft_proto_msgTypes[158]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8503,7 +9102,7 @@ func (x *HeartbeatHostRequest) String() string {
 func (*HeartbeatHostRequest) ProtoMessage() {}
 
 func (x *HeartbeatHostRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[147]
+	mi := &file_weft_proto_msgTypes[158]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8516,7 +9115,7 @@ func (x *HeartbeatHostRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HeartbeatHostRequest.ProtoReflect.Descriptor instead.
 func (*HeartbeatHostRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{147}
+	return file_weft_proto_rawDescGZIP(), []int{158}
 }
 
 func (x *HeartbeatHostRequest) GetUuid() string {
@@ -8534,7 +9133,7 @@ type HeartbeatHostResponse struct {
 
 func (x *HeartbeatHostResponse) Reset() {
 	*x = HeartbeatHostResponse{}
-	mi := &file_weft_proto_msgTypes[148]
+	mi := &file_weft_proto_msgTypes[159]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8546,7 +9145,7 @@ func (x *HeartbeatHostResponse) String() string {
 func (*HeartbeatHostResponse) ProtoMessage() {}
 
 func (x *HeartbeatHostResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[148]
+	mi := &file_weft_proto_msgTypes[159]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8559,7 +9158,7 @@ func (x *HeartbeatHostResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HeartbeatHostResponse.ProtoReflect.Descriptor instead.
 func (*HeartbeatHostResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{148}
+	return file_weft_proto_rawDescGZIP(), []int{159}
 }
 
 // SetHostState transitions a host to "active" / "draining" /
@@ -8575,7 +9174,7 @@ type SetHostStateRequest struct {
 
 func (x *SetHostStateRequest) Reset() {
 	*x = SetHostStateRequest{}
-	mi := &file_weft_proto_msgTypes[149]
+	mi := &file_weft_proto_msgTypes[160]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8587,7 +9186,7 @@ func (x *SetHostStateRequest) String() string {
 func (*SetHostStateRequest) ProtoMessage() {}
 
 func (x *SetHostStateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[149]
+	mi := &file_weft_proto_msgTypes[160]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8600,7 +9199,7 @@ func (x *SetHostStateRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetHostStateRequest.ProtoReflect.Descriptor instead.
 func (*SetHostStateRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{149}
+	return file_weft_proto_rawDescGZIP(), []int{160}
 }
 
 func (x *SetHostStateRequest) GetUuid() string {
@@ -8625,7 +9224,7 @@ type SetHostStateResponse struct {
 
 func (x *SetHostStateResponse) Reset() {
 	*x = SetHostStateResponse{}
-	mi := &file_weft_proto_msgTypes[150]
+	mi := &file_weft_proto_msgTypes[161]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8637,7 +9236,7 @@ func (x *SetHostStateResponse) String() string {
 func (*SetHostStateResponse) ProtoMessage() {}
 
 func (x *SetHostStateResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[150]
+	mi := &file_weft_proto_msgTypes[161]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8650,7 +9249,7 @@ func (x *SetHostStateResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetHostStateResponse.ProtoReflect.Descriptor instead.
 func (*SetHostStateResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{150}
+	return file_weft_proto_rawDescGZIP(), []int{161}
 }
 
 // SetHostLabels replaces the host's labels atomically. The
@@ -8665,7 +9264,7 @@ type SetHostLabelsRequest struct {
 
 func (x *SetHostLabelsRequest) Reset() {
 	*x = SetHostLabelsRequest{}
-	mi := &file_weft_proto_msgTypes[151]
+	mi := &file_weft_proto_msgTypes[162]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8677,7 +9276,7 @@ func (x *SetHostLabelsRequest) String() string {
 func (*SetHostLabelsRequest) ProtoMessage() {}
 
 func (x *SetHostLabelsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[151]
+	mi := &file_weft_proto_msgTypes[162]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8690,7 +9289,7 @@ func (x *SetHostLabelsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetHostLabelsRequest.ProtoReflect.Descriptor instead.
 func (*SetHostLabelsRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{151}
+	return file_weft_proto_rawDescGZIP(), []int{162}
 }
 
 func (x *SetHostLabelsRequest) GetUuid() string {
@@ -8715,7 +9314,7 @@ type SetHostLabelsResponse struct {
 
 func (x *SetHostLabelsResponse) Reset() {
 	*x = SetHostLabelsResponse{}
-	mi := &file_weft_proto_msgTypes[152]
+	mi := &file_weft_proto_msgTypes[163]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8727,7 +9326,7 @@ func (x *SetHostLabelsResponse) String() string {
 func (*SetHostLabelsResponse) ProtoMessage() {}
 
 func (x *SetHostLabelsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[152]
+	mi := &file_weft_proto_msgTypes[163]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8740,7 +9339,7 @@ func (x *SetHostLabelsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetHostLabelsResponse.ProtoReflect.Descriptor instead.
 func (*SetHostLabelsResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{152}
+	return file_weft_proto_rawDescGZIP(), []int{163}
 }
 
 // SetHostCordoned flips the host's cordon flag. Cordoned hosts
@@ -8759,7 +9358,7 @@ type SetHostCordonedRequest struct {
 
 func (x *SetHostCordonedRequest) Reset() {
 	*x = SetHostCordonedRequest{}
-	mi := &file_weft_proto_msgTypes[153]
+	mi := &file_weft_proto_msgTypes[164]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8771,7 +9370,7 @@ func (x *SetHostCordonedRequest) String() string {
 func (*SetHostCordonedRequest) ProtoMessage() {}
 
 func (x *SetHostCordonedRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[153]
+	mi := &file_weft_proto_msgTypes[164]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8784,7 +9383,7 @@ func (x *SetHostCordonedRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetHostCordonedRequest.ProtoReflect.Descriptor instead.
 func (*SetHostCordonedRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{153}
+	return file_weft_proto_rawDescGZIP(), []int{164}
 }
 
 func (x *SetHostCordonedRequest) GetUuid() string {
@@ -8809,7 +9408,7 @@ type SetHostCordonedResponse struct {
 
 func (x *SetHostCordonedResponse) Reset() {
 	*x = SetHostCordonedResponse{}
-	mi := &file_weft_proto_msgTypes[154]
+	mi := &file_weft_proto_msgTypes[165]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8821,7 +9420,7 @@ func (x *SetHostCordonedResponse) String() string {
 func (*SetHostCordonedResponse) ProtoMessage() {}
 
 func (x *SetHostCordonedResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[154]
+	mi := &file_weft_proto_msgTypes[165]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8834,7 +9433,7 @@ func (x *SetHostCordonedResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetHostCordonedResponse.ProtoReflect.Descriptor instead.
 func (*SetHostCordonedResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{154}
+	return file_weft_proto_rawDescGZIP(), []int{165}
 }
 
 // DeleteHost removes a host from the registry. The operator
@@ -8849,7 +9448,7 @@ type DeleteHostRequest struct {
 
 func (x *DeleteHostRequest) Reset() {
 	*x = DeleteHostRequest{}
-	mi := &file_weft_proto_msgTypes[155]
+	mi := &file_weft_proto_msgTypes[166]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8861,7 +9460,7 @@ func (x *DeleteHostRequest) String() string {
 func (*DeleteHostRequest) ProtoMessage() {}
 
 func (x *DeleteHostRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[155]
+	mi := &file_weft_proto_msgTypes[166]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8874,7 +9473,7 @@ func (x *DeleteHostRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteHostRequest.ProtoReflect.Descriptor instead.
 func (*DeleteHostRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{155}
+	return file_weft_proto_rawDescGZIP(), []int{166}
 }
 
 func (x *DeleteHostRequest) GetUuid() string {
@@ -8892,7 +9491,7 @@ type DeleteHostResponse struct {
 
 func (x *DeleteHostResponse) Reset() {
 	*x = DeleteHostResponse{}
-	mi := &file_weft_proto_msgTypes[156]
+	mi := &file_weft_proto_msgTypes[167]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8904,7 +9503,7 @@ func (x *DeleteHostResponse) String() string {
 func (*DeleteHostResponse) ProtoMessage() {}
 
 func (x *DeleteHostResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[156]
+	mi := &file_weft_proto_msgTypes[167]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8917,7 +9516,7 @@ func (x *DeleteHostResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteHostResponse.ProtoReflect.Descriptor instead.
 func (*DeleteHostResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{156}
+	return file_weft_proto_rawDescGZIP(), []int{167}
 }
 
 // AgentMessage is what the agent sends up the stream. The very
@@ -8939,7 +9538,7 @@ type AgentMessage struct {
 
 func (x *AgentMessage) Reset() {
 	*x = AgentMessage{}
-	mi := &file_weft_proto_msgTypes[157]
+	mi := &file_weft_proto_msgTypes[168]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8951,7 +9550,7 @@ func (x *AgentMessage) String() string {
 func (*AgentMessage) ProtoMessage() {}
 
 func (x *AgentMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[157]
+	mi := &file_weft_proto_msgTypes[168]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8964,7 +9563,7 @@ func (x *AgentMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentMessage.ProtoReflect.Descriptor instead.
 func (*AgentMessage) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{157}
+	return file_weft_proto_rawDescGZIP(), []int{168}
 }
 
 func (x *AgentMessage) GetBody() isAgentMessage_Body {
@@ -9040,7 +9639,7 @@ type ControlMessage struct {
 
 func (x *ControlMessage) Reset() {
 	*x = ControlMessage{}
-	mi := &file_weft_proto_msgTypes[158]
+	mi := &file_weft_proto_msgTypes[169]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9052,7 +9651,7 @@ func (x *ControlMessage) String() string {
 func (*ControlMessage) ProtoMessage() {}
 
 func (x *ControlMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[158]
+	mi := &file_weft_proto_msgTypes[169]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9065,7 +9664,7 @@ func (x *ControlMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ControlMessage.ProtoReflect.Descriptor instead.
 func (*ControlMessage) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{158}
+	return file_weft_proto_rawDescGZIP(), []int{169}
 }
 
 func (x *ControlMessage) GetBody() isControlMessage_Body {
@@ -9138,7 +9737,7 @@ type AgentHello struct {
 
 func (x *AgentHello) Reset() {
 	*x = AgentHello{}
-	mi := &file_weft_proto_msgTypes[159]
+	mi := &file_weft_proto_msgTypes[170]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9150,7 +9749,7 @@ func (x *AgentHello) String() string {
 func (*AgentHello) ProtoMessage() {}
 
 func (x *AgentHello) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[159]
+	mi := &file_weft_proto_msgTypes[170]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9163,7 +9762,7 @@ func (x *AgentHello) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentHello.ProtoReflect.Descriptor instead.
 func (*AgentHello) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{159}
+	return file_weft_proto_rawDescGZIP(), []int{170}
 }
 
 func (x *AgentHello) GetHostUuid() string {
@@ -9194,7 +9793,7 @@ type ControlHelloAck struct {
 
 func (x *ControlHelloAck) Reset() {
 	*x = ControlHelloAck{}
-	mi := &file_weft_proto_msgTypes[160]
+	mi := &file_weft_proto_msgTypes[171]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9206,7 +9805,7 @@ func (x *ControlHelloAck) String() string {
 func (*ControlHelloAck) ProtoMessage() {}
 
 func (x *ControlHelloAck) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[160]
+	mi := &file_weft_proto_msgTypes[171]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9219,7 +9818,7 @@ func (x *ControlHelloAck) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ControlHelloAck.ProtoReflect.Descriptor instead.
 func (*ControlHelloAck) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{160}
+	return file_weft_proto_rawDescGZIP(), []int{171}
 }
 
 func (x *ControlHelloAck) GetSessionId() string {
@@ -9242,7 +9841,7 @@ type ControlPing struct {
 
 func (x *ControlPing) Reset() {
 	*x = ControlPing{}
-	mi := &file_weft_proto_msgTypes[161]
+	mi := &file_weft_proto_msgTypes[172]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9254,7 +9853,7 @@ func (x *ControlPing) String() string {
 func (*ControlPing) ProtoMessage() {}
 
 func (x *ControlPing) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[161]
+	mi := &file_weft_proto_msgTypes[172]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9267,7 +9866,7 @@ func (x *ControlPing) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ControlPing.ProtoReflect.Descriptor instead.
 func (*ControlPing) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{161}
+	return file_weft_proto_rawDescGZIP(), []int{172}
 }
 
 func (x *ControlPing) GetSessionId() string {
@@ -9296,7 +9895,7 @@ type AgentPong struct {
 
 func (x *AgentPong) Reset() {
 	*x = AgentPong{}
-	mi := &file_weft_proto_msgTypes[162]
+	mi := &file_weft_proto_msgTypes[173]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9308,7 +9907,7 @@ func (x *AgentPong) String() string {
 func (*AgentPong) ProtoMessage() {}
 
 func (x *AgentPong) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[162]
+	mi := &file_weft_proto_msgTypes[173]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9321,7 +9920,7 @@ func (x *AgentPong) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentPong.ProtoReflect.Descriptor instead.
 func (*AgentPong) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{162}
+	return file_weft_proto_rawDescGZIP(), []int{173}
 }
 
 func (x *AgentPong) GetSessionId() string {
@@ -9372,7 +9971,7 @@ type DriverRequest struct {
 
 func (x *DriverRequest) Reset() {
 	*x = DriverRequest{}
-	mi := &file_weft_proto_msgTypes[163]
+	mi := &file_weft_proto_msgTypes[174]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9384,7 +9983,7 @@ func (x *DriverRequest) String() string {
 func (*DriverRequest) ProtoMessage() {}
 
 func (x *DriverRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[163]
+	mi := &file_weft_proto_msgTypes[174]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9397,7 +9996,7 @@ func (x *DriverRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DriverRequest.ProtoReflect.Descriptor instead.
 func (*DriverRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{163}
+	return file_weft_proto_rawDescGZIP(), []int{174}
 }
 
 func (x *DriverRequest) GetRequestId() string {
@@ -9514,7 +10113,7 @@ type DriverReply struct {
 
 func (x *DriverReply) Reset() {
 	*x = DriverReply{}
-	mi := &file_weft_proto_msgTypes[164]
+	mi := &file_weft_proto_msgTypes[175]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9526,7 +10125,7 @@ func (x *DriverReply) String() string {
 func (*DriverReply) ProtoMessage() {}
 
 func (x *DriverReply) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[164]
+	mi := &file_weft_proto_msgTypes[175]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9539,7 +10138,7 @@ func (x *DriverReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DriverReply.ProtoReflect.Descriptor instead.
 func (*DriverReply) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{164}
+	return file_weft_proto_rawDescGZIP(), []int{175}
 }
 
 func (x *DriverReply) GetRequestId() string {
@@ -9661,7 +10260,7 @@ type CreateVMOp struct {
 
 func (x *CreateVMOp) Reset() {
 	*x = CreateVMOp{}
-	mi := &file_weft_proto_msgTypes[165]
+	mi := &file_weft_proto_msgTypes[176]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9673,7 +10272,7 @@ func (x *CreateVMOp) String() string {
 func (*CreateVMOp) ProtoMessage() {}
 
 func (x *CreateVMOp) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[165]
+	mi := &file_weft_proto_msgTypes[176]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9686,7 +10285,7 @@ func (x *CreateVMOp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateVMOp.ProtoReflect.Descriptor instead.
 func (*CreateVMOp) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{165}
+	return file_weft_proto_rawDescGZIP(), []int{176}
 }
 
 func (x *CreateVMOp) GetVmUuid() string {
@@ -9743,7 +10342,7 @@ type CreateVMResult struct {
 
 func (x *CreateVMResult) Reset() {
 	*x = CreateVMResult{}
-	mi := &file_weft_proto_msgTypes[166]
+	mi := &file_weft_proto_msgTypes[177]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9755,7 +10354,7 @@ func (x *CreateVMResult) String() string {
 func (*CreateVMResult) ProtoMessage() {}
 
 func (x *CreateVMResult) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[166]
+	mi := &file_weft_proto_msgTypes[177]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9768,7 +10367,7 @@ func (x *CreateVMResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateVMResult.ProtoReflect.Descriptor instead.
 func (*CreateVMResult) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{166}
+	return file_weft_proto_rawDescGZIP(), []int{177}
 }
 
 func (x *CreateVMResult) GetVmUuid() string {
@@ -9803,7 +10402,7 @@ type RegisterMicroVMOp struct {
 
 func (x *RegisterMicroVMOp) Reset() {
 	*x = RegisterMicroVMOp{}
-	mi := &file_weft_proto_msgTypes[167]
+	mi := &file_weft_proto_msgTypes[178]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9815,7 +10414,7 @@ func (x *RegisterMicroVMOp) String() string {
 func (*RegisterMicroVMOp) ProtoMessage() {}
 
 func (x *RegisterMicroVMOp) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[167]
+	mi := &file_weft_proto_msgTypes[178]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9828,7 +10427,7 @@ func (x *RegisterMicroVMOp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegisterMicroVMOp.ProtoReflect.Descriptor instead.
 func (*RegisterMicroVMOp) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{167}
+	return file_weft_proto_rawDescGZIP(), []int{178}
 }
 
 func (x *RegisterMicroVMOp) GetProject() string {
@@ -9890,7 +10489,7 @@ type RegisterMicroVMResult struct {
 
 func (x *RegisterMicroVMResult) Reset() {
 	*x = RegisterMicroVMResult{}
-	mi := &file_weft_proto_msgTypes[168]
+	mi := &file_weft_proto_msgTypes[179]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9902,7 +10501,7 @@ func (x *RegisterMicroVMResult) String() string {
 func (*RegisterMicroVMResult) ProtoMessage() {}
 
 func (x *RegisterMicroVMResult) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[168]
+	mi := &file_weft_proto_msgTypes[179]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9915,7 +10514,7 @@ func (x *RegisterMicroVMResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegisterMicroVMResult.ProtoReflect.Descriptor instead.
 func (*RegisterMicroVMResult) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{168}
+	return file_weft_proto_rawDescGZIP(), []int{179}
 }
 
 // StartVMOp dispatches a StartVM call to the agent's local
@@ -9931,7 +10530,7 @@ type StartVMOp struct {
 
 func (x *StartVMOp) Reset() {
 	*x = StartVMOp{}
-	mi := &file_weft_proto_msgTypes[169]
+	mi := &file_weft_proto_msgTypes[180]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9943,7 +10542,7 @@ func (x *StartVMOp) String() string {
 func (*StartVMOp) ProtoMessage() {}
 
 func (x *StartVMOp) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[169]
+	mi := &file_weft_proto_msgTypes[180]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9956,7 +10555,7 @@ func (x *StartVMOp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartVMOp.ProtoReflect.Descriptor instead.
 func (*StartVMOp) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{169}
+	return file_weft_proto_rawDescGZIP(), []int{180}
 }
 
 func (x *StartVMOp) GetProject() string {
@@ -9982,7 +10581,7 @@ type StartVMResult struct {
 
 func (x *StartVMResult) Reset() {
 	*x = StartVMResult{}
-	mi := &file_weft_proto_msgTypes[170]
+	mi := &file_weft_proto_msgTypes[181]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9994,7 +10593,7 @@ func (x *StartVMResult) String() string {
 func (*StartVMResult) ProtoMessage() {}
 
 func (x *StartVMResult) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[170]
+	mi := &file_weft_proto_msgTypes[181]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10007,7 +10606,7 @@ func (x *StartVMResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartVMResult.ProtoReflect.Descriptor instead.
 func (*StartVMResult) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{170}
+	return file_weft_proto_rawDescGZIP(), []int{181}
 }
 
 // StopVMOp dispatches a StopVM call to the agent.
@@ -10021,7 +10620,7 @@ type StopVMOp struct {
 
 func (x *StopVMOp) Reset() {
 	*x = StopVMOp{}
-	mi := &file_weft_proto_msgTypes[171]
+	mi := &file_weft_proto_msgTypes[182]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10033,7 +10632,7 @@ func (x *StopVMOp) String() string {
 func (*StopVMOp) ProtoMessage() {}
 
 func (x *StopVMOp) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[171]
+	mi := &file_weft_proto_msgTypes[182]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10046,7 +10645,7 @@ func (x *StopVMOp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StopVMOp.ProtoReflect.Descriptor instead.
 func (*StopVMOp) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{171}
+	return file_weft_proto_rawDescGZIP(), []int{182}
 }
 
 func (x *StopVMOp) GetProject() string {
@@ -10072,7 +10671,7 @@ type StopVMResult struct {
 
 func (x *StopVMResult) Reset() {
 	*x = StopVMResult{}
-	mi := &file_weft_proto_msgTypes[172]
+	mi := &file_weft_proto_msgTypes[183]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10084,7 +10683,7 @@ func (x *StopVMResult) String() string {
 func (*StopVMResult) ProtoMessage() {}
 
 func (x *StopVMResult) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[172]
+	mi := &file_weft_proto_msgTypes[183]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10097,7 +10696,7 @@ func (x *StopVMResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StopVMResult.ProtoReflect.Descriptor instead.
 func (*StopVMResult) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{172}
+	return file_weft_proto_rawDescGZIP(), []int{183}
 }
 
 // DeleteVMOp dispatches a DeleteVM call to the agent. Removes
@@ -10114,7 +10713,7 @@ type DeleteVMOp struct {
 
 func (x *DeleteVMOp) Reset() {
 	*x = DeleteVMOp{}
-	mi := &file_weft_proto_msgTypes[173]
+	mi := &file_weft_proto_msgTypes[184]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10126,7 +10725,7 @@ func (x *DeleteVMOp) String() string {
 func (*DeleteVMOp) ProtoMessage() {}
 
 func (x *DeleteVMOp) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[173]
+	mi := &file_weft_proto_msgTypes[184]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10139,7 +10738,7 @@ func (x *DeleteVMOp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteVMOp.ProtoReflect.Descriptor instead.
 func (*DeleteVMOp) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{173}
+	return file_weft_proto_rawDescGZIP(), []int{184}
 }
 
 func (x *DeleteVMOp) GetProject() string {
@@ -10165,7 +10764,7 @@ type DeleteVMResult struct {
 
 func (x *DeleteVMResult) Reset() {
 	*x = DeleteVMResult{}
-	mi := &file_weft_proto_msgTypes[174]
+	mi := &file_weft_proto_msgTypes[185]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10177,7 +10776,7 @@ func (x *DeleteVMResult) String() string {
 func (*DeleteVMResult) ProtoMessage() {}
 
 func (x *DeleteVMResult) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[174]
+	mi := &file_weft_proto_msgTypes[185]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10190,7 +10789,7 @@ func (x *DeleteVMResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteVMResult.ProtoReflect.Descriptor instead.
 func (*DeleteVMResult) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{174}
+	return file_weft_proto_rawDescGZIP(), []int{185}
 }
 
 type TenantInfo struct {
@@ -10209,7 +10808,7 @@ type TenantInfo struct {
 
 func (x *TenantInfo) Reset() {
 	*x = TenantInfo{}
-	mi := &file_weft_proto_msgTypes[175]
+	mi := &file_weft_proto_msgTypes[186]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10221,7 +10820,7 @@ func (x *TenantInfo) String() string {
 func (*TenantInfo) ProtoMessage() {}
 
 func (x *TenantInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[175]
+	mi := &file_weft_proto_msgTypes[186]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10234,7 +10833,7 @@ func (x *TenantInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TenantInfo.ProtoReflect.Descriptor instead.
 func (*TenantInfo) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{175}
+	return file_weft_proto_rawDescGZIP(), []int{186}
 }
 
 func (x *TenantInfo) GetUuid() string {
@@ -10301,7 +10900,7 @@ type ListTenantsRequest struct {
 
 func (x *ListTenantsRequest) Reset() {
 	*x = ListTenantsRequest{}
-	mi := &file_weft_proto_msgTypes[176]
+	mi := &file_weft_proto_msgTypes[187]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10313,7 +10912,7 @@ func (x *ListTenantsRequest) String() string {
 func (*ListTenantsRequest) ProtoMessage() {}
 
 func (x *ListTenantsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[176]
+	mi := &file_weft_proto_msgTypes[187]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10326,7 +10925,7 @@ func (x *ListTenantsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListTenantsRequest.ProtoReflect.Descriptor instead.
 func (*ListTenantsRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{176}
+	return file_weft_proto_rawDescGZIP(), []int{187}
 }
 
 type ListTenantsResponse struct {
@@ -10338,7 +10937,7 @@ type ListTenantsResponse struct {
 
 func (x *ListTenantsResponse) Reset() {
 	*x = ListTenantsResponse{}
-	mi := &file_weft_proto_msgTypes[177]
+	mi := &file_weft_proto_msgTypes[188]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10350,7 +10949,7 @@ func (x *ListTenantsResponse) String() string {
 func (*ListTenantsResponse) ProtoMessage() {}
 
 func (x *ListTenantsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[177]
+	mi := &file_weft_proto_msgTypes[188]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10363,7 +10962,7 @@ func (x *ListTenantsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListTenantsResponse.ProtoReflect.Descriptor instead.
 func (*ListTenantsResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{177}
+	return file_weft_proto_rawDescGZIP(), []int{188}
 }
 
 func (x *ListTenantsResponse) GetTenants() []*TenantInfo {
@@ -10383,7 +10982,7 @@ type CreateTenantRequest struct {
 
 func (x *CreateTenantRequest) Reset() {
 	*x = CreateTenantRequest{}
-	mi := &file_weft_proto_msgTypes[178]
+	mi := &file_weft_proto_msgTypes[189]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10395,7 +10994,7 @@ func (x *CreateTenantRequest) String() string {
 func (*CreateTenantRequest) ProtoMessage() {}
 
 func (x *CreateTenantRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[178]
+	mi := &file_weft_proto_msgTypes[189]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10408,7 +11007,7 @@ func (x *CreateTenantRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateTenantRequest.ProtoReflect.Descriptor instead.
 func (*CreateTenantRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{178}
+	return file_weft_proto_rawDescGZIP(), []int{189}
 }
 
 func (x *CreateTenantRequest) GetName() string {
@@ -10434,7 +11033,7 @@ type CreateTenantResponse struct {
 
 func (x *CreateTenantResponse) Reset() {
 	*x = CreateTenantResponse{}
-	mi := &file_weft_proto_msgTypes[179]
+	mi := &file_weft_proto_msgTypes[190]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10446,7 +11045,7 @@ func (x *CreateTenantResponse) String() string {
 func (*CreateTenantResponse) ProtoMessage() {}
 
 func (x *CreateTenantResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[179]
+	mi := &file_weft_proto_msgTypes[190]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10459,7 +11058,7 @@ func (x *CreateTenantResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateTenantResponse.ProtoReflect.Descriptor instead.
 func (*CreateTenantResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{179}
+	return file_weft_proto_rawDescGZIP(), []int{190}
 }
 
 func (x *CreateTenantResponse) GetTenant() *TenantInfo {
@@ -10478,7 +11077,7 @@ type DeleteTenantRequest struct {
 
 func (x *DeleteTenantRequest) Reset() {
 	*x = DeleteTenantRequest{}
-	mi := &file_weft_proto_msgTypes[180]
+	mi := &file_weft_proto_msgTypes[191]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10490,7 +11089,7 @@ func (x *DeleteTenantRequest) String() string {
 func (*DeleteTenantRequest) ProtoMessage() {}
 
 func (x *DeleteTenantRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[180]
+	mi := &file_weft_proto_msgTypes[191]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10503,7 +11102,7 @@ func (x *DeleteTenantRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteTenantRequest.ProtoReflect.Descriptor instead.
 func (*DeleteTenantRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{180}
+	return file_weft_proto_rawDescGZIP(), []int{191}
 }
 
 func (x *DeleteTenantRequest) GetUuid() string {
@@ -10521,7 +11120,7 @@ type DeleteTenantResponse struct {
 
 func (x *DeleteTenantResponse) Reset() {
 	*x = DeleteTenantResponse{}
-	mi := &file_weft_proto_msgTypes[181]
+	mi := &file_weft_proto_msgTypes[192]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10533,7 +11132,7 @@ func (x *DeleteTenantResponse) String() string {
 func (*DeleteTenantResponse) ProtoMessage() {}
 
 func (x *DeleteTenantResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[181]
+	mi := &file_weft_proto_msgTypes[192]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10546,7 +11145,7 @@ func (x *DeleteTenantResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteTenantResponse.ProtoReflect.Descriptor instead.
 func (*DeleteTenantResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{181}
+	return file_weft_proto_rawDescGZIP(), []int{192}
 }
 
 // AddTenantAdmin promotes a user (looked up by email) into the
@@ -10562,7 +11161,7 @@ type AddTenantAdminRequest struct {
 
 func (x *AddTenantAdminRequest) Reset() {
 	*x = AddTenantAdminRequest{}
-	mi := &file_weft_proto_msgTypes[182]
+	mi := &file_weft_proto_msgTypes[193]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10574,7 +11173,7 @@ func (x *AddTenantAdminRequest) String() string {
 func (*AddTenantAdminRequest) ProtoMessage() {}
 
 func (x *AddTenantAdminRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[182]
+	mi := &file_weft_proto_msgTypes[193]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10587,7 +11186,7 @@ func (x *AddTenantAdminRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddTenantAdminRequest.ProtoReflect.Descriptor instead.
 func (*AddTenantAdminRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{182}
+	return file_weft_proto_rawDescGZIP(), []int{193}
 }
 
 func (x *AddTenantAdminRequest) GetTenantUuid() string {
@@ -10613,7 +11212,7 @@ type AddTenantAdminResponse struct {
 
 func (x *AddTenantAdminResponse) Reset() {
 	*x = AddTenantAdminResponse{}
-	mi := &file_weft_proto_msgTypes[183]
+	mi := &file_weft_proto_msgTypes[194]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10625,7 +11224,7 @@ func (x *AddTenantAdminResponse) String() string {
 func (*AddTenantAdminResponse) ProtoMessage() {}
 
 func (x *AddTenantAdminResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[183]
+	mi := &file_weft_proto_msgTypes[194]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10638,7 +11237,7 @@ func (x *AddTenantAdminResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddTenantAdminResponse.ProtoReflect.Descriptor instead.
 func (*AddTenantAdminResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{183}
+	return file_weft_proto_rawDescGZIP(), []int{194}
 }
 
 func (x *AddTenantAdminResponse) GetTenant() *TenantInfo {
@@ -10658,7 +11257,7 @@ type RemoveTenantAdminRequest struct {
 
 func (x *RemoveTenantAdminRequest) Reset() {
 	*x = RemoveTenantAdminRequest{}
-	mi := &file_weft_proto_msgTypes[184]
+	mi := &file_weft_proto_msgTypes[195]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10670,7 +11269,7 @@ func (x *RemoveTenantAdminRequest) String() string {
 func (*RemoveTenantAdminRequest) ProtoMessage() {}
 
 func (x *RemoveTenantAdminRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[184]
+	mi := &file_weft_proto_msgTypes[195]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10683,7 +11282,7 @@ func (x *RemoveTenantAdminRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveTenantAdminRequest.ProtoReflect.Descriptor instead.
 func (*RemoveTenantAdminRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{184}
+	return file_weft_proto_rawDescGZIP(), []int{195}
 }
 
 func (x *RemoveTenantAdminRequest) GetTenantUuid() string {
@@ -10709,7 +11308,7 @@ type RemoveTenantAdminResponse struct {
 
 func (x *RemoveTenantAdminResponse) Reset() {
 	*x = RemoveTenantAdminResponse{}
-	mi := &file_weft_proto_msgTypes[185]
+	mi := &file_weft_proto_msgTypes[196]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10721,7 +11320,7 @@ func (x *RemoveTenantAdminResponse) String() string {
 func (*RemoveTenantAdminResponse) ProtoMessage() {}
 
 func (x *RemoveTenantAdminResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[185]
+	mi := &file_weft_proto_msgTypes[196]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10734,7 +11333,7 @@ func (x *RemoveTenantAdminResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveTenantAdminResponse.ProtoReflect.Descriptor instead.
 func (*RemoveTenantAdminResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{185}
+	return file_weft_proto_rawDescGZIP(), []int{196}
 }
 
 func (x *RemoveTenantAdminResponse) GetTenant() *TenantInfo {
@@ -10758,7 +11357,7 @@ type AddTenantMemberRequest struct {
 
 func (x *AddTenantMemberRequest) Reset() {
 	*x = AddTenantMemberRequest{}
-	mi := &file_weft_proto_msgTypes[186]
+	mi := &file_weft_proto_msgTypes[197]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10770,7 +11369,7 @@ func (x *AddTenantMemberRequest) String() string {
 func (*AddTenantMemberRequest) ProtoMessage() {}
 
 func (x *AddTenantMemberRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[186]
+	mi := &file_weft_proto_msgTypes[197]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10783,7 +11382,7 @@ func (x *AddTenantMemberRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddTenantMemberRequest.ProtoReflect.Descriptor instead.
 func (*AddTenantMemberRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{186}
+	return file_weft_proto_rawDescGZIP(), []int{197}
 }
 
 func (x *AddTenantMemberRequest) GetTenantUuid() string {
@@ -10816,7 +11415,7 @@ type AddTenantMemberResponse struct {
 
 func (x *AddTenantMemberResponse) Reset() {
 	*x = AddTenantMemberResponse{}
-	mi := &file_weft_proto_msgTypes[187]
+	mi := &file_weft_proto_msgTypes[198]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10828,7 +11427,7 @@ func (x *AddTenantMemberResponse) String() string {
 func (*AddTenantMemberResponse) ProtoMessage() {}
 
 func (x *AddTenantMemberResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[187]
+	mi := &file_weft_proto_msgTypes[198]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10841,7 +11440,7 @@ func (x *AddTenantMemberResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddTenantMemberResponse.ProtoReflect.Descriptor instead.
 func (*AddTenantMemberResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{187}
+	return file_weft_proto_rawDescGZIP(), []int{198}
 }
 
 func (x *AddTenantMemberResponse) GetTenant() *TenantInfo {
@@ -10861,7 +11460,7 @@ type RemoveTenantMemberRequest struct {
 
 func (x *RemoveTenantMemberRequest) Reset() {
 	*x = RemoveTenantMemberRequest{}
-	mi := &file_weft_proto_msgTypes[188]
+	mi := &file_weft_proto_msgTypes[199]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10873,7 +11472,7 @@ func (x *RemoveTenantMemberRequest) String() string {
 func (*RemoveTenantMemberRequest) ProtoMessage() {}
 
 func (x *RemoveTenantMemberRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[188]
+	mi := &file_weft_proto_msgTypes[199]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10886,7 +11485,7 @@ func (x *RemoveTenantMemberRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveTenantMemberRequest.ProtoReflect.Descriptor instead.
 func (*RemoveTenantMemberRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{188}
+	return file_weft_proto_rawDescGZIP(), []int{199}
 }
 
 func (x *RemoveTenantMemberRequest) GetTenantUuid() string {
@@ -10912,7 +11511,7 @@ type RemoveTenantMemberResponse struct {
 
 func (x *RemoveTenantMemberResponse) Reset() {
 	*x = RemoveTenantMemberResponse{}
-	mi := &file_weft_proto_msgTypes[189]
+	mi := &file_weft_proto_msgTypes[200]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10924,7 +11523,7 @@ func (x *RemoveTenantMemberResponse) String() string {
 func (*RemoveTenantMemberResponse) ProtoMessage() {}
 
 func (x *RemoveTenantMemberResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[189]
+	mi := &file_weft_proto_msgTypes[200]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10937,7 +11536,7 @@ func (x *RemoveTenantMemberResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveTenantMemberResponse.ProtoReflect.Descriptor instead.
 func (*RemoveTenantMemberResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{189}
+	return file_weft_proto_rawDescGZIP(), []int{200}
 }
 
 func (x *RemoveTenantMemberResponse) GetTenant() *TenantInfo {
@@ -10968,7 +11567,7 @@ type Quotas struct {
 
 func (x *Quotas) Reset() {
 	*x = Quotas{}
-	mi := &file_weft_proto_msgTypes[190]
+	mi := &file_weft_proto_msgTypes[201]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10980,7 +11579,7 @@ func (x *Quotas) String() string {
 func (*Quotas) ProtoMessage() {}
 
 func (x *Quotas) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[190]
+	mi := &file_weft_proto_msgTypes[201]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10993,7 +11592,7 @@ func (x *Quotas) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Quotas.ProtoReflect.Descriptor instead.
 func (*Quotas) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{190}
+	return file_weft_proto_rawDescGZIP(), []int{201}
 }
 
 func (x *Quotas) GetVcpu() int32 {
@@ -11082,7 +11681,7 @@ type GetTenantQuotaRequest struct {
 
 func (x *GetTenantQuotaRequest) Reset() {
 	*x = GetTenantQuotaRequest{}
-	mi := &file_weft_proto_msgTypes[191]
+	mi := &file_weft_proto_msgTypes[202]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11094,7 +11693,7 @@ func (x *GetTenantQuotaRequest) String() string {
 func (*GetTenantQuotaRequest) ProtoMessage() {}
 
 func (x *GetTenantQuotaRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[191]
+	mi := &file_weft_proto_msgTypes[202]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11107,7 +11706,7 @@ func (x *GetTenantQuotaRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTenantQuotaRequest.ProtoReflect.Descriptor instead.
 func (*GetTenantQuotaRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{191}
+	return file_weft_proto_rawDescGZIP(), []int{202}
 }
 
 func (x *GetTenantQuotaRequest) GetTenantUuid() string {
@@ -11127,7 +11726,7 @@ type GetTenantQuotaResponse struct {
 
 func (x *GetTenantQuotaResponse) Reset() {
 	*x = GetTenantQuotaResponse{}
-	mi := &file_weft_proto_msgTypes[192]
+	mi := &file_weft_proto_msgTypes[203]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11139,7 +11738,7 @@ func (x *GetTenantQuotaResponse) String() string {
 func (*GetTenantQuotaResponse) ProtoMessage() {}
 
 func (x *GetTenantQuotaResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[192]
+	mi := &file_weft_proto_msgTypes[203]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11152,7 +11751,7 @@ func (x *GetTenantQuotaResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTenantQuotaResponse.ProtoReflect.Descriptor instead.
 func (*GetTenantQuotaResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{192}
+	return file_weft_proto_rawDescGZIP(), []int{203}
 }
 
 func (x *GetTenantQuotaResponse) GetCap() *Quotas {
@@ -11179,7 +11778,7 @@ type SetTenantQuotaRequest struct {
 
 func (x *SetTenantQuotaRequest) Reset() {
 	*x = SetTenantQuotaRequest{}
-	mi := &file_weft_proto_msgTypes[193]
+	mi := &file_weft_proto_msgTypes[204]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11191,7 +11790,7 @@ func (x *SetTenantQuotaRequest) String() string {
 func (*SetTenantQuotaRequest) ProtoMessage() {}
 
 func (x *SetTenantQuotaRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[193]
+	mi := &file_weft_proto_msgTypes[204]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11204,7 +11803,7 @@ func (x *SetTenantQuotaRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetTenantQuotaRequest.ProtoReflect.Descriptor instead.
 func (*SetTenantQuotaRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{193}
+	return file_weft_proto_rawDescGZIP(), []int{204}
 }
 
 func (x *SetTenantQuotaRequest) GetTenantUuid() string {
@@ -11231,7 +11830,7 @@ type SetTenantQuotaResponse struct {
 
 func (x *SetTenantQuotaResponse) Reset() {
 	*x = SetTenantQuotaResponse{}
-	mi := &file_weft_proto_msgTypes[194]
+	mi := &file_weft_proto_msgTypes[205]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11243,7 +11842,7 @@ func (x *SetTenantQuotaResponse) String() string {
 func (*SetTenantQuotaResponse) ProtoMessage() {}
 
 func (x *SetTenantQuotaResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[194]
+	mi := &file_weft_proto_msgTypes[205]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11256,7 +11855,7 @@ func (x *SetTenantQuotaResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetTenantQuotaResponse.ProtoReflect.Descriptor instead.
 func (*SetTenantQuotaResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{194}
+	return file_weft_proto_rawDescGZIP(), []int{205}
 }
 
 func (x *SetTenantQuotaResponse) GetCap() *Quotas {
@@ -11282,7 +11881,7 @@ type GetProjectQuotaRequest struct {
 
 func (x *GetProjectQuotaRequest) Reset() {
 	*x = GetProjectQuotaRequest{}
-	mi := &file_weft_proto_msgTypes[195]
+	mi := &file_weft_proto_msgTypes[206]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11294,7 +11893,7 @@ func (x *GetProjectQuotaRequest) String() string {
 func (*GetProjectQuotaRequest) ProtoMessage() {}
 
 func (x *GetProjectQuotaRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[195]
+	mi := &file_weft_proto_msgTypes[206]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11307,7 +11906,7 @@ func (x *GetProjectQuotaRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetProjectQuotaRequest.ProtoReflect.Descriptor instead.
 func (*GetProjectQuotaRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{195}
+	return file_weft_proto_rawDescGZIP(), []int{206}
 }
 
 func (x *GetProjectQuotaRequest) GetProjectUuid() string {
@@ -11328,7 +11927,7 @@ type GetProjectQuotaResponse struct {
 
 func (x *GetProjectQuotaResponse) Reset() {
 	*x = GetProjectQuotaResponse{}
-	mi := &file_weft_proto_msgTypes[196]
+	mi := &file_weft_proto_msgTypes[207]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11340,7 +11939,7 @@ func (x *GetProjectQuotaResponse) String() string {
 func (*GetProjectQuotaResponse) ProtoMessage() {}
 
 func (x *GetProjectQuotaResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[196]
+	mi := &file_weft_proto_msgTypes[207]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11353,7 +11952,7 @@ func (x *GetProjectQuotaResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetProjectQuotaResponse.ProtoReflect.Descriptor instead.
 func (*GetProjectQuotaResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{196}
+	return file_weft_proto_rawDescGZIP(), []int{207}
 }
 
 func (x *GetProjectQuotaResponse) GetProject() *Quotas {
@@ -11387,7 +11986,7 @@ type SetProjectQuotaRequest struct {
 
 func (x *SetProjectQuotaRequest) Reset() {
 	*x = SetProjectQuotaRequest{}
-	mi := &file_weft_proto_msgTypes[197]
+	mi := &file_weft_proto_msgTypes[208]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11399,7 +11998,7 @@ func (x *SetProjectQuotaRequest) String() string {
 func (*SetProjectQuotaRequest) ProtoMessage() {}
 
 func (x *SetProjectQuotaRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[197]
+	mi := &file_weft_proto_msgTypes[208]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11412,7 +12011,7 @@ func (x *SetProjectQuotaRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetProjectQuotaRequest.ProtoReflect.Descriptor instead.
 func (*SetProjectQuotaRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{197}
+	return file_weft_proto_rawDescGZIP(), []int{208}
 }
 
 func (x *SetProjectQuotaRequest) GetProjectUuid() string {
@@ -11440,7 +12039,7 @@ type SetProjectQuotaResponse struct {
 
 func (x *SetProjectQuotaResponse) Reset() {
 	*x = SetProjectQuotaResponse{}
-	mi := &file_weft_proto_msgTypes[198]
+	mi := &file_weft_proto_msgTypes[209]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11452,7 +12051,7 @@ func (x *SetProjectQuotaResponse) String() string {
 func (*SetProjectQuotaResponse) ProtoMessage() {}
 
 func (x *SetProjectQuotaResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[198]
+	mi := &file_weft_proto_msgTypes[209]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11465,7 +12064,7 @@ func (x *SetProjectQuotaResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetProjectQuotaResponse.ProtoReflect.Descriptor instead.
 func (*SetProjectQuotaResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{198}
+	return file_weft_proto_rawDescGZIP(), []int{209}
 }
 
 func (x *SetProjectQuotaResponse) GetProject() *Quotas {
@@ -11506,7 +12105,7 @@ type ShareInfo struct {
 
 func (x *ShareInfo) Reset() {
 	*x = ShareInfo{}
-	mi := &file_weft_proto_msgTypes[199]
+	mi := &file_weft_proto_msgTypes[210]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11518,7 +12117,7 @@ func (x *ShareInfo) String() string {
 func (*ShareInfo) ProtoMessage() {}
 
 func (x *ShareInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[199]
+	mi := &file_weft_proto_msgTypes[210]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11531,7 +12130,7 @@ func (x *ShareInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ShareInfo.ProtoReflect.Descriptor instead.
 func (*ShareInfo) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{199}
+	return file_weft_proto_rawDescGZIP(), []int{210}
 }
 
 func (x *ShareInfo) GetUuid() string {
@@ -11608,7 +12207,7 @@ type ListSharesRequest struct {
 
 func (x *ListSharesRequest) Reset() {
 	*x = ListSharesRequest{}
-	mi := &file_weft_proto_msgTypes[200]
+	mi := &file_weft_proto_msgTypes[211]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11620,7 +12219,7 @@ func (x *ListSharesRequest) String() string {
 func (*ListSharesRequest) ProtoMessage() {}
 
 func (x *ListSharesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[200]
+	mi := &file_weft_proto_msgTypes[211]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11633,7 +12232,7 @@ func (x *ListSharesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSharesRequest.ProtoReflect.Descriptor instead.
 func (*ListSharesRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{200}
+	return file_weft_proto_rawDescGZIP(), []int{211}
 }
 
 func (x *ListSharesRequest) GetProject() string {
@@ -11667,7 +12266,7 @@ type ListSharesResponse struct {
 
 func (x *ListSharesResponse) Reset() {
 	*x = ListSharesResponse{}
-	mi := &file_weft_proto_msgTypes[201]
+	mi := &file_weft_proto_msgTypes[212]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11679,7 +12278,7 @@ func (x *ListSharesResponse) String() string {
 func (*ListSharesResponse) ProtoMessage() {}
 
 func (x *ListSharesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[201]
+	mi := &file_weft_proto_msgTypes[212]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11692,7 +12291,7 @@ func (x *ListSharesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSharesResponse.ProtoReflect.Descriptor instead.
 func (*ListSharesResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{201}
+	return file_weft_proto_rawDescGZIP(), []int{212}
 }
 
 func (x *ListSharesResponse) GetShares() []*ShareInfo {
@@ -11722,7 +12321,7 @@ type CreateShareRequest struct {
 
 func (x *CreateShareRequest) Reset() {
 	*x = CreateShareRequest{}
-	mi := &file_weft_proto_msgTypes[202]
+	mi := &file_weft_proto_msgTypes[213]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11734,7 +12333,7 @@ func (x *CreateShareRequest) String() string {
 func (*CreateShareRequest) ProtoMessage() {}
 
 func (x *CreateShareRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[202]
+	mi := &file_weft_proto_msgTypes[213]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11747,7 +12346,7 @@ func (x *CreateShareRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateShareRequest.ProtoReflect.Descriptor instead.
 func (*CreateShareRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{202}
+	return file_weft_proto_rawDescGZIP(), []int{213}
 }
 
 func (x *CreateShareRequest) GetProject() string {
@@ -11794,7 +12393,7 @@ type CreateShareResponse struct {
 
 func (x *CreateShareResponse) Reset() {
 	*x = CreateShareResponse{}
-	mi := &file_weft_proto_msgTypes[203]
+	mi := &file_weft_proto_msgTypes[214]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11806,7 +12405,7 @@ func (x *CreateShareResponse) String() string {
 func (*CreateShareResponse) ProtoMessage() {}
 
 func (x *CreateShareResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[203]
+	mi := &file_weft_proto_msgTypes[214]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11819,7 +12418,7 @@ func (x *CreateShareResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateShareResponse.ProtoReflect.Descriptor instead.
 func (*CreateShareResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{203}
+	return file_weft_proto_rawDescGZIP(), []int{214}
 }
 
 func (x *CreateShareResponse) GetShare() *ShareInfo {
@@ -11838,7 +12437,7 @@ type DeleteShareRequest struct {
 
 func (x *DeleteShareRequest) Reset() {
 	*x = DeleteShareRequest{}
-	mi := &file_weft_proto_msgTypes[204]
+	mi := &file_weft_proto_msgTypes[215]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11850,7 +12449,7 @@ func (x *DeleteShareRequest) String() string {
 func (*DeleteShareRequest) ProtoMessage() {}
 
 func (x *DeleteShareRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[204]
+	mi := &file_weft_proto_msgTypes[215]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11863,7 +12462,7 @@ func (x *DeleteShareRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteShareRequest.ProtoReflect.Descriptor instead.
 func (*DeleteShareRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{204}
+	return file_weft_proto_rawDescGZIP(), []int{215}
 }
 
 func (x *DeleteShareRequest) GetUuid() string {
@@ -11881,7 +12480,7 @@ type DeleteShareResponse struct {
 
 func (x *DeleteShareResponse) Reset() {
 	*x = DeleteShareResponse{}
-	mi := &file_weft_proto_msgTypes[205]
+	mi := &file_weft_proto_msgTypes[216]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11893,7 +12492,7 @@ func (x *DeleteShareResponse) String() string {
 func (*DeleteShareResponse) ProtoMessage() {}
 
 func (x *DeleteShareResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[205]
+	mi := &file_weft_proto_msgTypes[216]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11906,7 +12505,7 @@ func (x *DeleteShareResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteShareResponse.ProtoReflect.Descriptor instead.
 func (*DeleteShareResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{205}
+	return file_weft_proto_rawDescGZIP(), []int{216}
 }
 
 type FloatingIPInfo struct {
@@ -11924,7 +12523,7 @@ type FloatingIPInfo struct {
 
 func (x *FloatingIPInfo) Reset() {
 	*x = FloatingIPInfo{}
-	mi := &file_weft_proto_msgTypes[206]
+	mi := &file_weft_proto_msgTypes[217]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11936,7 +12535,7 @@ func (x *FloatingIPInfo) String() string {
 func (*FloatingIPInfo) ProtoMessage() {}
 
 func (x *FloatingIPInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[206]
+	mi := &file_weft_proto_msgTypes[217]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11949,7 +12548,7 @@ func (x *FloatingIPInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FloatingIPInfo.ProtoReflect.Descriptor instead.
 func (*FloatingIPInfo) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{206}
+	return file_weft_proto_rawDescGZIP(), []int{217}
 }
 
 func (x *FloatingIPInfo) GetUuid() string {
@@ -12012,7 +12611,7 @@ type ListFloatingIPsRequest struct {
 
 func (x *ListFloatingIPsRequest) Reset() {
 	*x = ListFloatingIPsRequest{}
-	mi := &file_weft_proto_msgTypes[207]
+	mi := &file_weft_proto_msgTypes[218]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12024,7 +12623,7 @@ func (x *ListFloatingIPsRequest) String() string {
 func (*ListFloatingIPsRequest) ProtoMessage() {}
 
 func (x *ListFloatingIPsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[207]
+	mi := &file_weft_proto_msgTypes[218]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12037,7 +12636,7 @@ func (x *ListFloatingIPsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListFloatingIPsRequest.ProtoReflect.Descriptor instead.
 func (*ListFloatingIPsRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{207}
+	return file_weft_proto_rawDescGZIP(), []int{218}
 }
 
 func (x *ListFloatingIPsRequest) GetProject() string {
@@ -12071,7 +12670,7 @@ type ListFloatingIPsResponse struct {
 
 func (x *ListFloatingIPsResponse) Reset() {
 	*x = ListFloatingIPsResponse{}
-	mi := &file_weft_proto_msgTypes[208]
+	mi := &file_weft_proto_msgTypes[219]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12083,7 +12682,7 @@ func (x *ListFloatingIPsResponse) String() string {
 func (*ListFloatingIPsResponse) ProtoMessage() {}
 
 func (x *ListFloatingIPsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[208]
+	mi := &file_weft_proto_msgTypes[219]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12096,7 +12695,7 @@ func (x *ListFloatingIPsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListFloatingIPsResponse.ProtoReflect.Descriptor instead.
 func (*ListFloatingIPsResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{208}
+	return file_weft_proto_rawDescGZIP(), []int{219}
 }
 
 func (x *ListFloatingIPsResponse) GetFloatingIps() []*FloatingIPInfo {
@@ -12126,7 +12725,7 @@ type AllocateFloatingIPRequest struct {
 
 func (x *AllocateFloatingIPRequest) Reset() {
 	*x = AllocateFloatingIPRequest{}
-	mi := &file_weft_proto_msgTypes[209]
+	mi := &file_weft_proto_msgTypes[220]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12138,7 +12737,7 @@ func (x *AllocateFloatingIPRequest) String() string {
 func (*AllocateFloatingIPRequest) ProtoMessage() {}
 
 func (x *AllocateFloatingIPRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[209]
+	mi := &file_weft_proto_msgTypes[220]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12151,7 +12750,7 @@ func (x *AllocateFloatingIPRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AllocateFloatingIPRequest.ProtoReflect.Descriptor instead.
 func (*AllocateFloatingIPRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{209}
+	return file_weft_proto_rawDescGZIP(), []int{220}
 }
 
 func (x *AllocateFloatingIPRequest) GetProject() string {
@@ -12177,7 +12776,7 @@ type AllocateFloatingIPResponse struct {
 
 func (x *AllocateFloatingIPResponse) Reset() {
 	*x = AllocateFloatingIPResponse{}
-	mi := &file_weft_proto_msgTypes[210]
+	mi := &file_weft_proto_msgTypes[221]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12189,7 +12788,7 @@ func (x *AllocateFloatingIPResponse) String() string {
 func (*AllocateFloatingIPResponse) ProtoMessage() {}
 
 func (x *AllocateFloatingIPResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[210]
+	mi := &file_weft_proto_msgTypes[221]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12202,7 +12801,7 @@ func (x *AllocateFloatingIPResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AllocateFloatingIPResponse.ProtoReflect.Descriptor instead.
 func (*AllocateFloatingIPResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{210}
+	return file_weft_proto_rawDescGZIP(), []int{221}
 }
 
 func (x *AllocateFloatingIPResponse) GetFloatingIp() *FloatingIPInfo {
@@ -12221,7 +12820,7 @@ type ReleaseFloatingIPRequest struct {
 
 func (x *ReleaseFloatingIPRequest) Reset() {
 	*x = ReleaseFloatingIPRequest{}
-	mi := &file_weft_proto_msgTypes[211]
+	mi := &file_weft_proto_msgTypes[222]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12233,7 +12832,7 @@ func (x *ReleaseFloatingIPRequest) String() string {
 func (*ReleaseFloatingIPRequest) ProtoMessage() {}
 
 func (x *ReleaseFloatingIPRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[211]
+	mi := &file_weft_proto_msgTypes[222]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12246,7 +12845,7 @@ func (x *ReleaseFloatingIPRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReleaseFloatingIPRequest.ProtoReflect.Descriptor instead.
 func (*ReleaseFloatingIPRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{211}
+	return file_weft_proto_rawDescGZIP(), []int{222}
 }
 
 func (x *ReleaseFloatingIPRequest) GetUuid() string {
@@ -12264,7 +12863,7 @@ type ReleaseFloatingIPResponse struct {
 
 func (x *ReleaseFloatingIPResponse) Reset() {
 	*x = ReleaseFloatingIPResponse{}
-	mi := &file_weft_proto_msgTypes[212]
+	mi := &file_weft_proto_msgTypes[223]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12276,7 +12875,7 @@ func (x *ReleaseFloatingIPResponse) String() string {
 func (*ReleaseFloatingIPResponse) ProtoMessage() {}
 
 func (x *ReleaseFloatingIPResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[212]
+	mi := &file_weft_proto_msgTypes[223]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12289,7 +12888,7 @@ func (x *ReleaseFloatingIPResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReleaseFloatingIPResponse.ProtoReflect.Descriptor instead.
 func (*ReleaseFloatingIPResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{212}
+	return file_weft_proto_rawDescGZIP(), []int{223}
 }
 
 // MapFloatingIP attaches an allocated FIP to a target. `target_kind`
@@ -12307,7 +12906,7 @@ type MapFloatingIPRequest struct {
 
 func (x *MapFloatingIPRequest) Reset() {
 	*x = MapFloatingIPRequest{}
-	mi := &file_weft_proto_msgTypes[213]
+	mi := &file_weft_proto_msgTypes[224]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12319,7 +12918,7 @@ func (x *MapFloatingIPRequest) String() string {
 func (*MapFloatingIPRequest) ProtoMessage() {}
 
 func (x *MapFloatingIPRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[213]
+	mi := &file_weft_proto_msgTypes[224]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12332,7 +12931,7 @@ func (x *MapFloatingIPRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MapFloatingIPRequest.ProtoReflect.Descriptor instead.
 func (*MapFloatingIPRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{213}
+	return file_weft_proto_rawDescGZIP(), []int{224}
 }
 
 func (x *MapFloatingIPRequest) GetUuid() string {
@@ -12365,7 +12964,7 @@ type MapFloatingIPResponse struct {
 
 func (x *MapFloatingIPResponse) Reset() {
 	*x = MapFloatingIPResponse{}
-	mi := &file_weft_proto_msgTypes[214]
+	mi := &file_weft_proto_msgTypes[225]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12377,7 +12976,7 @@ func (x *MapFloatingIPResponse) String() string {
 func (*MapFloatingIPResponse) ProtoMessage() {}
 
 func (x *MapFloatingIPResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[214]
+	mi := &file_weft_proto_msgTypes[225]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12390,7 +12989,7 @@ func (x *MapFloatingIPResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MapFloatingIPResponse.ProtoReflect.Descriptor instead.
 func (*MapFloatingIPResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{214}
+	return file_weft_proto_rawDescGZIP(), []int{225}
 }
 
 func (x *MapFloatingIPResponse) GetFloatingIp() *FloatingIPInfo {
@@ -12409,7 +13008,7 @@ type UnmapFloatingIPRequest struct {
 
 func (x *UnmapFloatingIPRequest) Reset() {
 	*x = UnmapFloatingIPRequest{}
-	mi := &file_weft_proto_msgTypes[215]
+	mi := &file_weft_proto_msgTypes[226]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12421,7 +13020,7 @@ func (x *UnmapFloatingIPRequest) String() string {
 func (*UnmapFloatingIPRequest) ProtoMessage() {}
 
 func (x *UnmapFloatingIPRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[215]
+	mi := &file_weft_proto_msgTypes[226]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12434,7 +13033,7 @@ func (x *UnmapFloatingIPRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UnmapFloatingIPRequest.ProtoReflect.Descriptor instead.
 func (*UnmapFloatingIPRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{215}
+	return file_weft_proto_rawDescGZIP(), []int{226}
 }
 
 func (x *UnmapFloatingIPRequest) GetUuid() string {
@@ -12453,7 +13052,7 @@ type UnmapFloatingIPResponse struct {
 
 func (x *UnmapFloatingIPResponse) Reset() {
 	*x = UnmapFloatingIPResponse{}
-	mi := &file_weft_proto_msgTypes[216]
+	mi := &file_weft_proto_msgTypes[227]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12465,7 +13064,7 @@ func (x *UnmapFloatingIPResponse) String() string {
 func (*UnmapFloatingIPResponse) ProtoMessage() {}
 
 func (x *UnmapFloatingIPResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[216]
+	mi := &file_weft_proto_msgTypes[227]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12478,7 +13077,7 @@ func (x *UnmapFloatingIPResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UnmapFloatingIPResponse.ProtoReflect.Descriptor instead.
 func (*UnmapFloatingIPResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{216}
+	return file_weft_proto_rawDescGZIP(), []int{227}
 }
 
 func (x *UnmapFloatingIPResponse) GetFloatingIp() *FloatingIPInfo {
@@ -12501,7 +13100,7 @@ type Flavor struct {
 
 func (x *Flavor) Reset() {
 	*x = Flavor{}
-	mi := &file_weft_proto_msgTypes[217]
+	mi := &file_weft_proto_msgTypes[228]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12513,7 +13112,7 @@ func (x *Flavor) String() string {
 func (*Flavor) ProtoMessage() {}
 
 func (x *Flavor) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[217]
+	mi := &file_weft_proto_msgTypes[228]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12526,7 +13125,7 @@ func (x *Flavor) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Flavor.ProtoReflect.Descriptor instead.
 func (*Flavor) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{217}
+	return file_weft_proto_rawDescGZIP(), []int{228}
 }
 
 func (x *Flavor) GetName() string {
@@ -12574,7 +13173,7 @@ type ListFlavorsRequest struct {
 
 func (x *ListFlavorsRequest) Reset() {
 	*x = ListFlavorsRequest{}
-	mi := &file_weft_proto_msgTypes[218]
+	mi := &file_weft_proto_msgTypes[229]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12586,7 +13185,7 @@ func (x *ListFlavorsRequest) String() string {
 func (*ListFlavorsRequest) ProtoMessage() {}
 
 func (x *ListFlavorsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[218]
+	mi := &file_weft_proto_msgTypes[229]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12599,7 +13198,7 @@ func (x *ListFlavorsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListFlavorsRequest.ProtoReflect.Descriptor instead.
 func (*ListFlavorsRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{218}
+	return file_weft_proto_rawDescGZIP(), []int{229}
 }
 
 func (x *ListFlavorsRequest) GetLimit() int32 {
@@ -12626,7 +13225,7 @@ type ListFlavorsResponse struct {
 
 func (x *ListFlavorsResponse) Reset() {
 	*x = ListFlavorsResponse{}
-	mi := &file_weft_proto_msgTypes[219]
+	mi := &file_weft_proto_msgTypes[230]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12638,7 +13237,7 @@ func (x *ListFlavorsResponse) String() string {
 func (*ListFlavorsResponse) ProtoMessage() {}
 
 func (x *ListFlavorsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[219]
+	mi := &file_weft_proto_msgTypes[230]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12651,7 +13250,7 @@ func (x *ListFlavorsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListFlavorsResponse.ProtoReflect.Descriptor instead.
 func (*ListFlavorsResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{219}
+	return file_weft_proto_rawDescGZIP(), []int{230}
 }
 
 func (x *ListFlavorsResponse) GetFlavors() []*Flavor {
@@ -12677,7 +13276,7 @@ type GetFlavorRequest struct {
 
 func (x *GetFlavorRequest) Reset() {
 	*x = GetFlavorRequest{}
-	mi := &file_weft_proto_msgTypes[220]
+	mi := &file_weft_proto_msgTypes[231]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12689,7 +13288,7 @@ func (x *GetFlavorRequest) String() string {
 func (*GetFlavorRequest) ProtoMessage() {}
 
 func (x *GetFlavorRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[220]
+	mi := &file_weft_proto_msgTypes[231]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12702,7 +13301,7 @@ func (x *GetFlavorRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetFlavorRequest.ProtoReflect.Descriptor instead.
 func (*GetFlavorRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{220}
+	return file_weft_proto_rawDescGZIP(), []int{231}
 }
 
 func (x *GetFlavorRequest) GetName() string {
@@ -12721,7 +13320,7 @@ type GetFlavorResponse struct {
 
 func (x *GetFlavorResponse) Reset() {
 	*x = GetFlavorResponse{}
-	mi := &file_weft_proto_msgTypes[221]
+	mi := &file_weft_proto_msgTypes[232]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12733,7 +13332,7 @@ func (x *GetFlavorResponse) String() string {
 func (*GetFlavorResponse) ProtoMessage() {}
 
 func (x *GetFlavorResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[221]
+	mi := &file_weft_proto_msgTypes[232]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12746,7 +13345,7 @@ func (x *GetFlavorResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetFlavorResponse.ProtoReflect.Descriptor instead.
 func (*GetFlavorResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{221}
+	return file_weft_proto_rawDescGZIP(), []int{232}
 }
 
 func (x *GetFlavorResponse) GetFlavor() *Flavor {
@@ -12769,7 +13368,7 @@ type SetFlavorRequest struct {
 
 func (x *SetFlavorRequest) Reset() {
 	*x = SetFlavorRequest{}
-	mi := &file_weft_proto_msgTypes[222]
+	mi := &file_weft_proto_msgTypes[233]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12781,7 +13380,7 @@ func (x *SetFlavorRequest) String() string {
 func (*SetFlavorRequest) ProtoMessage() {}
 
 func (x *SetFlavorRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[222]
+	mi := &file_weft_proto_msgTypes[233]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12794,7 +13393,7 @@ func (x *SetFlavorRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetFlavorRequest.ProtoReflect.Descriptor instead.
 func (*SetFlavorRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{222}
+	return file_weft_proto_rawDescGZIP(), []int{233}
 }
 
 func (x *SetFlavorRequest) GetFlavor() *Flavor {
@@ -12813,7 +13412,7 @@ type SetFlavorResponse struct {
 
 func (x *SetFlavorResponse) Reset() {
 	*x = SetFlavorResponse{}
-	mi := &file_weft_proto_msgTypes[223]
+	mi := &file_weft_proto_msgTypes[234]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12825,7 +13424,7 @@ func (x *SetFlavorResponse) String() string {
 func (*SetFlavorResponse) ProtoMessage() {}
 
 func (x *SetFlavorResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[223]
+	mi := &file_weft_proto_msgTypes[234]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12838,7 +13437,7 @@ func (x *SetFlavorResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetFlavorResponse.ProtoReflect.Descriptor instead.
 func (*SetFlavorResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{223}
+	return file_weft_proto_rawDescGZIP(), []int{234}
 }
 
 func (x *SetFlavorResponse) GetFlavor() *Flavor {
@@ -12857,7 +13456,7 @@ type DeleteFlavorRequest struct {
 
 func (x *DeleteFlavorRequest) Reset() {
 	*x = DeleteFlavorRequest{}
-	mi := &file_weft_proto_msgTypes[224]
+	mi := &file_weft_proto_msgTypes[235]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12869,7 +13468,7 @@ func (x *DeleteFlavorRequest) String() string {
 func (*DeleteFlavorRequest) ProtoMessage() {}
 
 func (x *DeleteFlavorRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[224]
+	mi := &file_weft_proto_msgTypes[235]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12882,7 +13481,7 @@ func (x *DeleteFlavorRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteFlavorRequest.ProtoReflect.Descriptor instead.
 func (*DeleteFlavorRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{224}
+	return file_weft_proto_rawDescGZIP(), []int{235}
 }
 
 func (x *DeleteFlavorRequest) GetName() string {
@@ -12901,7 +13500,7 @@ type DeleteFlavorResponse struct {
 
 func (x *DeleteFlavorResponse) Reset() {
 	*x = DeleteFlavorResponse{}
-	mi := &file_weft_proto_msgTypes[225]
+	mi := &file_weft_proto_msgTypes[236]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12913,7 +13512,7 @@ func (x *DeleteFlavorResponse) String() string {
 func (*DeleteFlavorResponse) ProtoMessage() {}
 
 func (x *DeleteFlavorResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[225]
+	mi := &file_weft_proto_msgTypes[236]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12926,7 +13525,7 @@ func (x *DeleteFlavorResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteFlavorResponse.ProtoReflect.Descriptor instead.
 func (*DeleteFlavorResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{225}
+	return file_weft_proto_rawDescGZIP(), []int{236}
 }
 
 func (x *DeleteFlavorResponse) GetDeleted() string {
@@ -12949,7 +13548,7 @@ type Script struct {
 
 func (x *Script) Reset() {
 	*x = Script{}
-	mi := &file_weft_proto_msgTypes[226]
+	mi := &file_weft_proto_msgTypes[237]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12961,7 +13560,7 @@ func (x *Script) String() string {
 func (*Script) ProtoMessage() {}
 
 func (x *Script) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[226]
+	mi := &file_weft_proto_msgTypes[237]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12974,7 +13573,7 @@ func (x *Script) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Script.ProtoReflect.Descriptor instead.
 func (*Script) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{226}
+	return file_weft_proto_rawDescGZIP(), []int{237}
 }
 
 func (x *Script) GetName() string {
@@ -13022,7 +13621,7 @@ type ListScriptsRequest struct {
 
 func (x *ListScriptsRequest) Reset() {
 	*x = ListScriptsRequest{}
-	mi := &file_weft_proto_msgTypes[227]
+	mi := &file_weft_proto_msgTypes[238]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13034,7 +13633,7 @@ func (x *ListScriptsRequest) String() string {
 func (*ListScriptsRequest) ProtoMessage() {}
 
 func (x *ListScriptsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[227]
+	mi := &file_weft_proto_msgTypes[238]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13047,7 +13646,7 @@ func (x *ListScriptsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListScriptsRequest.ProtoReflect.Descriptor instead.
 func (*ListScriptsRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{227}
+	return file_weft_proto_rawDescGZIP(), []int{238}
 }
 
 func (x *ListScriptsRequest) GetLimit() int32 {
@@ -13074,7 +13673,7 @@ type ListScriptsResponse struct {
 
 func (x *ListScriptsResponse) Reset() {
 	*x = ListScriptsResponse{}
-	mi := &file_weft_proto_msgTypes[228]
+	mi := &file_weft_proto_msgTypes[239]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13086,7 +13685,7 @@ func (x *ListScriptsResponse) String() string {
 func (*ListScriptsResponse) ProtoMessage() {}
 
 func (x *ListScriptsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[228]
+	mi := &file_weft_proto_msgTypes[239]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13099,7 +13698,7 @@ func (x *ListScriptsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListScriptsResponse.ProtoReflect.Descriptor instead.
 func (*ListScriptsResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{228}
+	return file_weft_proto_rawDescGZIP(), []int{239}
 }
 
 func (x *ListScriptsResponse) GetScripts() []*Script {
@@ -13125,7 +13724,7 @@ type GetScriptRequest struct {
 
 func (x *GetScriptRequest) Reset() {
 	*x = GetScriptRequest{}
-	mi := &file_weft_proto_msgTypes[229]
+	mi := &file_weft_proto_msgTypes[240]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13137,7 +13736,7 @@ func (x *GetScriptRequest) String() string {
 func (*GetScriptRequest) ProtoMessage() {}
 
 func (x *GetScriptRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[229]
+	mi := &file_weft_proto_msgTypes[240]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13150,7 +13749,7 @@ func (x *GetScriptRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetScriptRequest.ProtoReflect.Descriptor instead.
 func (*GetScriptRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{229}
+	return file_weft_proto_rawDescGZIP(), []int{240}
 }
 
 func (x *GetScriptRequest) GetName() string {
@@ -13169,7 +13768,7 @@ type GetScriptResponse struct {
 
 func (x *GetScriptResponse) Reset() {
 	*x = GetScriptResponse{}
-	mi := &file_weft_proto_msgTypes[230]
+	mi := &file_weft_proto_msgTypes[241]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13181,7 +13780,7 @@ func (x *GetScriptResponse) String() string {
 func (*GetScriptResponse) ProtoMessage() {}
 
 func (x *GetScriptResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[230]
+	mi := &file_weft_proto_msgTypes[241]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13194,7 +13793,7 @@ func (x *GetScriptResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetScriptResponse.ProtoReflect.Descriptor instead.
 func (*GetScriptResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{230}
+	return file_weft_proto_rawDescGZIP(), []int{241}
 }
 
 func (x *GetScriptResponse) GetScript() *Script {
@@ -13213,7 +13812,7 @@ type SetScriptRequest struct {
 
 func (x *SetScriptRequest) Reset() {
 	*x = SetScriptRequest{}
-	mi := &file_weft_proto_msgTypes[231]
+	mi := &file_weft_proto_msgTypes[242]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13225,7 +13824,7 @@ func (x *SetScriptRequest) String() string {
 func (*SetScriptRequest) ProtoMessage() {}
 
 func (x *SetScriptRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[231]
+	mi := &file_weft_proto_msgTypes[242]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13238,7 +13837,7 @@ func (x *SetScriptRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetScriptRequest.ProtoReflect.Descriptor instead.
 func (*SetScriptRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{231}
+	return file_weft_proto_rawDescGZIP(), []int{242}
 }
 
 func (x *SetScriptRequest) GetScript() *Script {
@@ -13257,7 +13856,7 @@ type SetScriptResponse struct {
 
 func (x *SetScriptResponse) Reset() {
 	*x = SetScriptResponse{}
-	mi := &file_weft_proto_msgTypes[232]
+	mi := &file_weft_proto_msgTypes[243]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13269,7 +13868,7 @@ func (x *SetScriptResponse) String() string {
 func (*SetScriptResponse) ProtoMessage() {}
 
 func (x *SetScriptResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[232]
+	mi := &file_weft_proto_msgTypes[243]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13282,7 +13881,7 @@ func (x *SetScriptResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetScriptResponse.ProtoReflect.Descriptor instead.
 func (*SetScriptResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{232}
+	return file_weft_proto_rawDescGZIP(), []int{243}
 }
 
 func (x *SetScriptResponse) GetScript() *Script {
@@ -13301,7 +13900,7 @@ type DeleteScriptRequest struct {
 
 func (x *DeleteScriptRequest) Reset() {
 	*x = DeleteScriptRequest{}
-	mi := &file_weft_proto_msgTypes[233]
+	mi := &file_weft_proto_msgTypes[244]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13313,7 +13912,7 @@ func (x *DeleteScriptRequest) String() string {
 func (*DeleteScriptRequest) ProtoMessage() {}
 
 func (x *DeleteScriptRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[233]
+	mi := &file_weft_proto_msgTypes[244]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13326,7 +13925,7 @@ func (x *DeleteScriptRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteScriptRequest.ProtoReflect.Descriptor instead.
 func (*DeleteScriptRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{233}
+	return file_weft_proto_rawDescGZIP(), []int{244}
 }
 
 func (x *DeleteScriptRequest) GetName() string {
@@ -13345,7 +13944,7 @@ type DeleteScriptResponse struct {
 
 func (x *DeleteScriptResponse) Reset() {
 	*x = DeleteScriptResponse{}
-	mi := &file_weft_proto_msgTypes[234]
+	mi := &file_weft_proto_msgTypes[245]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13357,7 +13956,7 @@ func (x *DeleteScriptResponse) String() string {
 func (*DeleteScriptResponse) ProtoMessage() {}
 
 func (x *DeleteScriptResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[234]
+	mi := &file_weft_proto_msgTypes[245]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13370,7 +13969,7 @@ func (x *DeleteScriptResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteScriptResponse.ProtoReflect.Descriptor instead.
 func (*DeleteScriptResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{234}
+	return file_weft_proto_rawDescGZIP(), []int{245}
 }
 
 func (x *DeleteScriptResponse) GetDeleted() string {
@@ -13392,7 +13991,7 @@ type VMProperty struct {
 
 func (x *VMProperty) Reset() {
 	*x = VMProperty{}
-	mi := &file_weft_proto_msgTypes[235]
+	mi := &file_weft_proto_msgTypes[246]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13404,7 +14003,7 @@ func (x *VMProperty) String() string {
 func (*VMProperty) ProtoMessage() {}
 
 func (x *VMProperty) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[235]
+	mi := &file_weft_proto_msgTypes[246]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13417,7 +14016,7 @@ func (x *VMProperty) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VMProperty.ProtoReflect.Descriptor instead.
 func (*VMProperty) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{235}
+	return file_weft_proto_rawDescGZIP(), []int{246}
 }
 
 func (x *VMProperty) GetKey() string {
@@ -13460,7 +14059,7 @@ type ListVMPropertiesRequest struct {
 
 func (x *ListVMPropertiesRequest) Reset() {
 	*x = ListVMPropertiesRequest{}
-	mi := &file_weft_proto_msgTypes[236]
+	mi := &file_weft_proto_msgTypes[247]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13472,7 +14071,7 @@ func (x *ListVMPropertiesRequest) String() string {
 func (*ListVMPropertiesRequest) ProtoMessage() {}
 
 func (x *ListVMPropertiesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[236]
+	mi := &file_weft_proto_msgTypes[247]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13485,7 +14084,7 @@ func (x *ListVMPropertiesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListVMPropertiesRequest.ProtoReflect.Descriptor instead.
 func (*ListVMPropertiesRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{236}
+	return file_weft_proto_rawDescGZIP(), []int{247}
 }
 
 func (x *ListVMPropertiesRequest) GetVmName() string {
@@ -13526,7 +14125,7 @@ type ListVMPropertiesResponse struct {
 
 func (x *ListVMPropertiesResponse) Reset() {
 	*x = ListVMPropertiesResponse{}
-	mi := &file_weft_proto_msgTypes[237]
+	mi := &file_weft_proto_msgTypes[248]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13538,7 +14137,7 @@ func (x *ListVMPropertiesResponse) String() string {
 func (*ListVMPropertiesResponse) ProtoMessage() {}
 
 func (x *ListVMPropertiesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[237]
+	mi := &file_weft_proto_msgTypes[248]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13551,7 +14150,7 @@ func (x *ListVMPropertiesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListVMPropertiesResponse.ProtoReflect.Descriptor instead.
 func (*ListVMPropertiesResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{237}
+	return file_weft_proto_rawDescGZIP(), []int{248}
 }
 
 func (x *ListVMPropertiesResponse) GetProperties() []*VMProperty {
@@ -13579,7 +14178,7 @@ type SetVMPropertyRequest struct {
 
 func (x *SetVMPropertyRequest) Reset() {
 	*x = SetVMPropertyRequest{}
-	mi := &file_weft_proto_msgTypes[238]
+	mi := &file_weft_proto_msgTypes[249]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13591,7 +14190,7 @@ func (x *SetVMPropertyRequest) String() string {
 func (*SetVMPropertyRequest) ProtoMessage() {}
 
 func (x *SetVMPropertyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[238]
+	mi := &file_weft_proto_msgTypes[249]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13604,7 +14203,7 @@ func (x *SetVMPropertyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetVMPropertyRequest.ProtoReflect.Descriptor instead.
 func (*SetVMPropertyRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{238}
+	return file_weft_proto_rawDescGZIP(), []int{249}
 }
 
 func (x *SetVMPropertyRequest) GetVmName() string {
@@ -13637,7 +14236,7 @@ type SetVMPropertyResponse struct {
 
 func (x *SetVMPropertyResponse) Reset() {
 	*x = SetVMPropertyResponse{}
-	mi := &file_weft_proto_msgTypes[239]
+	mi := &file_weft_proto_msgTypes[250]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13649,7 +14248,7 @@ func (x *SetVMPropertyResponse) String() string {
 func (*SetVMPropertyResponse) ProtoMessage() {}
 
 func (x *SetVMPropertyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[239]
+	mi := &file_weft_proto_msgTypes[250]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13662,7 +14261,7 @@ func (x *SetVMPropertyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetVMPropertyResponse.ProtoReflect.Descriptor instead.
 func (*SetVMPropertyResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{239}
+	return file_weft_proto_rawDescGZIP(), []int{250}
 }
 
 func (x *SetVMPropertyResponse) GetProperty() *VMProperty {
@@ -13683,7 +14282,7 @@ type DeleteVMPropertyRequest struct {
 
 func (x *DeleteVMPropertyRequest) Reset() {
 	*x = DeleteVMPropertyRequest{}
-	mi := &file_weft_proto_msgTypes[240]
+	mi := &file_weft_proto_msgTypes[251]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13695,7 +14294,7 @@ func (x *DeleteVMPropertyRequest) String() string {
 func (*DeleteVMPropertyRequest) ProtoMessage() {}
 
 func (x *DeleteVMPropertyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[240]
+	mi := &file_weft_proto_msgTypes[251]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13708,7 +14307,7 @@ func (x *DeleteVMPropertyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteVMPropertyRequest.ProtoReflect.Descriptor instead.
 func (*DeleteVMPropertyRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{240}
+	return file_weft_proto_rawDescGZIP(), []int{251}
 }
 
 func (x *DeleteVMPropertyRequest) GetVmName() string {
@@ -13741,7 +14340,7 @@ type DeleteVMPropertyResponse struct {
 
 func (x *DeleteVMPropertyResponse) Reset() {
 	*x = DeleteVMPropertyResponse{}
-	mi := &file_weft_proto_msgTypes[241]
+	mi := &file_weft_proto_msgTypes[252]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13753,7 +14352,7 @@ func (x *DeleteVMPropertyResponse) String() string {
 func (*DeleteVMPropertyResponse) ProtoMessage() {}
 
 func (x *DeleteVMPropertyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[241]
+	mi := &file_weft_proto_msgTypes[252]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13766,7 +14365,7 @@ func (x *DeleteVMPropertyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteVMPropertyResponse.ProtoReflect.Descriptor instead.
 func (*DeleteVMPropertyResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{241}
+	return file_weft_proto_rawDescGZIP(), []int{252}
 }
 
 func (x *DeleteVMPropertyResponse) GetDeleted() string {
@@ -13789,7 +14388,7 @@ type UEFIVar struct {
 
 func (x *UEFIVar) Reset() {
 	*x = UEFIVar{}
-	mi := &file_weft_proto_msgTypes[242]
+	mi := &file_weft_proto_msgTypes[253]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13801,7 +14400,7 @@ func (x *UEFIVar) String() string {
 func (*UEFIVar) ProtoMessage() {}
 
 func (x *UEFIVar) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[242]
+	mi := &file_weft_proto_msgTypes[253]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13814,7 +14413,7 @@ func (x *UEFIVar) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UEFIVar.ProtoReflect.Descriptor instead.
 func (*UEFIVar) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{242}
+	return file_weft_proto_rawDescGZIP(), []int{253}
 }
 
 func (x *UEFIVar) GetNamespace() string {
@@ -13864,7 +14463,7 @@ type ListUEFIVarsRequest struct {
 
 func (x *ListUEFIVarsRequest) Reset() {
 	*x = ListUEFIVarsRequest{}
-	mi := &file_weft_proto_msgTypes[243]
+	mi := &file_weft_proto_msgTypes[254]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13876,7 +14475,7 @@ func (x *ListUEFIVarsRequest) String() string {
 func (*ListUEFIVarsRequest) ProtoMessage() {}
 
 func (x *ListUEFIVarsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[243]
+	mi := &file_weft_proto_msgTypes[254]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13889,7 +14488,7 @@ func (x *ListUEFIVarsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListUEFIVarsRequest.ProtoReflect.Descriptor instead.
 func (*ListUEFIVarsRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{243}
+	return file_weft_proto_rawDescGZIP(), []int{254}
 }
 
 func (x *ListUEFIVarsRequest) GetVmName() string {
@@ -13930,7 +14529,7 @@ type ListUEFIVarsResponse struct {
 
 func (x *ListUEFIVarsResponse) Reset() {
 	*x = ListUEFIVarsResponse{}
-	mi := &file_weft_proto_msgTypes[244]
+	mi := &file_weft_proto_msgTypes[255]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13942,7 +14541,7 @@ func (x *ListUEFIVarsResponse) String() string {
 func (*ListUEFIVarsResponse) ProtoMessage() {}
 
 func (x *ListUEFIVarsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[244]
+	mi := &file_weft_proto_msgTypes[255]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13955,7 +14554,7 @@ func (x *ListUEFIVarsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListUEFIVarsResponse.ProtoReflect.Descriptor instead.
 func (*ListUEFIVarsResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{244}
+	return file_weft_proto_rawDescGZIP(), []int{255}
 }
 
 func (x *ListUEFIVarsResponse) GetVars() []*UEFIVar {
@@ -13983,7 +14582,7 @@ type SetUEFIVarRequest struct {
 
 func (x *SetUEFIVarRequest) Reset() {
 	*x = SetUEFIVarRequest{}
-	mi := &file_weft_proto_msgTypes[245]
+	mi := &file_weft_proto_msgTypes[256]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13995,7 +14594,7 @@ func (x *SetUEFIVarRequest) String() string {
 func (*SetUEFIVarRequest) ProtoMessage() {}
 
 func (x *SetUEFIVarRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[245]
+	mi := &file_weft_proto_msgTypes[256]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14008,7 +14607,7 @@ func (x *SetUEFIVarRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetUEFIVarRequest.ProtoReflect.Descriptor instead.
 func (*SetUEFIVarRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{245}
+	return file_weft_proto_rawDescGZIP(), []int{256}
 }
 
 func (x *SetUEFIVarRequest) GetVmName() string {
@@ -14041,7 +14640,7 @@ type SetUEFIVarResponse struct {
 
 func (x *SetUEFIVarResponse) Reset() {
 	*x = SetUEFIVarResponse{}
-	mi := &file_weft_proto_msgTypes[246]
+	mi := &file_weft_proto_msgTypes[257]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14053,7 +14652,7 @@ func (x *SetUEFIVarResponse) String() string {
 func (*SetUEFIVarResponse) ProtoMessage() {}
 
 func (x *SetUEFIVarResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[246]
+	mi := &file_weft_proto_msgTypes[257]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14066,7 +14665,7 @@ func (x *SetUEFIVarResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetUEFIVarResponse.ProtoReflect.Descriptor instead.
 func (*SetUEFIVarResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{246}
+	return file_weft_proto_rawDescGZIP(), []int{257}
 }
 
 func (x *SetUEFIVarResponse) GetVar() *UEFIVar {
@@ -14088,7 +14687,7 @@ type DeleteUEFIVarRequest struct {
 
 func (x *DeleteUEFIVarRequest) Reset() {
 	*x = DeleteUEFIVarRequest{}
-	mi := &file_weft_proto_msgTypes[247]
+	mi := &file_weft_proto_msgTypes[258]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14100,7 +14699,7 @@ func (x *DeleteUEFIVarRequest) String() string {
 func (*DeleteUEFIVarRequest) ProtoMessage() {}
 
 func (x *DeleteUEFIVarRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[247]
+	mi := &file_weft_proto_msgTypes[258]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14113,7 +14712,7 @@ func (x *DeleteUEFIVarRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteUEFIVarRequest.ProtoReflect.Descriptor instead.
 func (*DeleteUEFIVarRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{247}
+	return file_weft_proto_rawDescGZIP(), []int{258}
 }
 
 func (x *DeleteUEFIVarRequest) GetVmName() string {
@@ -14153,7 +14752,7 @@ type DeleteUEFIVarResponse struct {
 
 func (x *DeleteUEFIVarResponse) Reset() {
 	*x = DeleteUEFIVarResponse{}
-	mi := &file_weft_proto_msgTypes[248]
+	mi := &file_weft_proto_msgTypes[259]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14165,7 +14764,7 @@ func (x *DeleteUEFIVarResponse) String() string {
 func (*DeleteUEFIVarResponse) ProtoMessage() {}
 
 func (x *DeleteUEFIVarResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[248]
+	mi := &file_weft_proto_msgTypes[259]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14178,7 +14777,7 @@ func (x *DeleteUEFIVarResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteUEFIVarResponse.ProtoReflect.Descriptor instead.
 func (*DeleteUEFIVarResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{248}
+	return file_weft_proto_rawDescGZIP(), []int{259}
 }
 
 func (x *DeleteUEFIVarResponse) GetDeleted() string {
@@ -14201,7 +14800,7 @@ type VMSSHKey struct {
 
 func (x *VMSSHKey) Reset() {
 	*x = VMSSHKey{}
-	mi := &file_weft_proto_msgTypes[249]
+	mi := &file_weft_proto_msgTypes[260]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14213,7 +14812,7 @@ func (x *VMSSHKey) String() string {
 func (*VMSSHKey) ProtoMessage() {}
 
 func (x *VMSSHKey) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[249]
+	mi := &file_weft_proto_msgTypes[260]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14226,7 +14825,7 @@ func (x *VMSSHKey) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VMSSHKey.ProtoReflect.Descriptor instead.
 func (*VMSSHKey) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{249}
+	return file_weft_proto_rawDescGZIP(), []int{260}
 }
 
 func (x *VMSSHKey) GetFingerprint() string {
@@ -14276,7 +14875,7 @@ type ListVMSSHKeysRequest struct {
 
 func (x *ListVMSSHKeysRequest) Reset() {
 	*x = ListVMSSHKeysRequest{}
-	mi := &file_weft_proto_msgTypes[250]
+	mi := &file_weft_proto_msgTypes[261]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14288,7 +14887,7 @@ func (x *ListVMSSHKeysRequest) String() string {
 func (*ListVMSSHKeysRequest) ProtoMessage() {}
 
 func (x *ListVMSSHKeysRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[250]
+	mi := &file_weft_proto_msgTypes[261]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14301,7 +14900,7 @@ func (x *ListVMSSHKeysRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListVMSSHKeysRequest.ProtoReflect.Descriptor instead.
 func (*ListVMSSHKeysRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{250}
+	return file_weft_proto_rawDescGZIP(), []int{261}
 }
 
 func (x *ListVMSSHKeysRequest) GetVmName() string {
@@ -14342,7 +14941,7 @@ type ListVMSSHKeysResponse struct {
 
 func (x *ListVMSSHKeysResponse) Reset() {
 	*x = ListVMSSHKeysResponse{}
-	mi := &file_weft_proto_msgTypes[251]
+	mi := &file_weft_proto_msgTypes[262]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14354,7 +14953,7 @@ func (x *ListVMSSHKeysResponse) String() string {
 func (*ListVMSSHKeysResponse) ProtoMessage() {}
 
 func (x *ListVMSSHKeysResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[251]
+	mi := &file_weft_proto_msgTypes[262]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14367,7 +14966,7 @@ func (x *ListVMSSHKeysResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListVMSSHKeysResponse.ProtoReflect.Descriptor instead.
 func (*ListVMSSHKeysResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{251}
+	return file_weft_proto_rawDescGZIP(), []int{262}
 }
 
 func (x *ListVMSSHKeysResponse) GetKeys() []*VMSSHKey {
@@ -14398,7 +14997,7 @@ type AddVMSSHKeyRequest struct {
 
 func (x *AddVMSSHKeyRequest) Reset() {
 	*x = AddVMSSHKeyRequest{}
-	mi := &file_weft_proto_msgTypes[252]
+	mi := &file_weft_proto_msgTypes[263]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14410,7 +15009,7 @@ func (x *AddVMSSHKeyRequest) String() string {
 func (*AddVMSSHKeyRequest) ProtoMessage() {}
 
 func (x *AddVMSSHKeyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[252]
+	mi := &file_weft_proto_msgTypes[263]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14423,7 +15022,7 @@ func (x *AddVMSSHKeyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddVMSSHKeyRequest.ProtoReflect.Descriptor instead.
 func (*AddVMSSHKeyRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{252}
+	return file_weft_proto_rawDescGZIP(), []int{263}
 }
 
 func (x *AddVMSSHKeyRequest) GetVmName() string {
@@ -14456,7 +15055,7 @@ type AddVMSSHKeyResponse struct {
 
 func (x *AddVMSSHKeyResponse) Reset() {
 	*x = AddVMSSHKeyResponse{}
-	mi := &file_weft_proto_msgTypes[253]
+	mi := &file_weft_proto_msgTypes[264]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14468,7 +15067,7 @@ func (x *AddVMSSHKeyResponse) String() string {
 func (*AddVMSSHKeyResponse) ProtoMessage() {}
 
 func (x *AddVMSSHKeyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[253]
+	mi := &file_weft_proto_msgTypes[264]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14481,7 +15080,7 @@ func (x *AddVMSSHKeyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddVMSSHKeyResponse.ProtoReflect.Descriptor instead.
 func (*AddVMSSHKeyResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{253}
+	return file_weft_proto_rawDescGZIP(), []int{264}
 }
 
 func (x *AddVMSSHKeyResponse) GetKey() *VMSSHKey {
@@ -14502,7 +15101,7 @@ type RemoveVMSSHKeyRequest struct {
 
 func (x *RemoveVMSSHKeyRequest) Reset() {
 	*x = RemoveVMSSHKeyRequest{}
-	mi := &file_weft_proto_msgTypes[254]
+	mi := &file_weft_proto_msgTypes[265]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14514,7 +15113,7 @@ func (x *RemoveVMSSHKeyRequest) String() string {
 func (*RemoveVMSSHKeyRequest) ProtoMessage() {}
 
 func (x *RemoveVMSSHKeyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[254]
+	mi := &file_weft_proto_msgTypes[265]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14527,7 +15126,7 @@ func (x *RemoveVMSSHKeyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveVMSSHKeyRequest.ProtoReflect.Descriptor instead.
 func (*RemoveVMSSHKeyRequest) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{254}
+	return file_weft_proto_rawDescGZIP(), []int{265}
 }
 
 func (x *RemoveVMSSHKeyRequest) GetVmName() string {
@@ -14560,7 +15159,7 @@ type RemoveVMSSHKeyResponse struct {
 
 func (x *RemoveVMSSHKeyResponse) Reset() {
 	*x = RemoveVMSSHKeyResponse{}
-	mi := &file_weft_proto_msgTypes[255]
+	mi := &file_weft_proto_msgTypes[266]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14572,7 +15171,7 @@ func (x *RemoveVMSSHKeyResponse) String() string {
 func (*RemoveVMSSHKeyResponse) ProtoMessage() {}
 
 func (x *RemoveVMSSHKeyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_weft_proto_msgTypes[255]
+	mi := &file_weft_proto_msgTypes[266]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14585,7 +15184,7 @@ func (x *RemoveVMSSHKeyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveVMSSHKeyResponse.ProtoReflect.Descriptor instead.
 func (*RemoveVMSSHKeyResponse) Descriptor() ([]byte, []int) {
-	return file_weft_proto_rawDescGZIP(), []int{255}
+	return file_weft_proto_rawDescGZIP(), []int{266}
 }
 
 func (x *RemoveVMSSHKeyResponse) GetRemoved() string {
@@ -14928,7 +15527,7 @@ const file_weft_proto_rawDesc = "" +
 	"\x05group\x18\x01 \x01(\v2\x1a.weft.v1.SecurityGroupInfoR\x05group\"0\n" +
 	"\x1aDeleteSecurityGroupRequest\x12\x12\n" +
 	"\x04uuid\x18\x01 \x01(\tR\x04uuid\"\x1d\n" +
-	"\x1bDeleteSecurityGroupResponse\"\xe1\x01\n" +
+	"\x1bDeleteSecurityGroupResponse\"\xfb\x01\n" +
 	"\n" +
 	"VolumeInfo\x12\x12\n" +
 	"\x04uuid\x18\x01 \x01(\tR\x04uuid\x12!\n" +
@@ -14937,7 +15536,8 @@ const file_weft_proto_rawDesc = "" +
 	"\bsize_gib\x18\x04 \x01(\x03R\asizeGib\x12\x16\n" +
 	"\x06format\x18\x05 \x01(\tR\x06format\x12(\n" +
 	"\x10attached_to_uuid\x18\x06 \x01(\tR\x0eattachedToUuid\x12+\n" +
-	"\x12created_at_unix_ns\x18\a \x01(\x03R\x0fcreatedAtUnixNs\"c\n" +
+	"\x12created_at_unix_ns\x18\a \x01(\x03R\x0fcreatedAtUnixNs\x12\x18\n" +
+	"\abackend\x18\b \x01(\tR\abackend\"c\n" +
 	"\x12ListVolumesRequest\x12\x18\n" +
 	"\aproject\x18\x01 \x01(\tR\aproject\x12\x14\n" +
 	"\x05limit\x18\x02 \x01(\x05R\x05limit\x12\x1d\n" +
@@ -15005,7 +15605,45 @@ const file_weft_proto_rawDesc = "" +
 	"\x06volume\x18\x01 \x01(\v2\x13.weft.v1.VolumeInfoR\x06volume\"1\n" +
 	"\x1bDeleteVolumeSnapshotRequest\x12\x12\n" +
 	"\x04uuid\x18\x01 \x01(\tR\x04uuid\"\x1e\n" +
-	"\x1cDeleteVolumeSnapshotResponse\"\xed\x01\n" +
+	"\x1cDeleteVolumeSnapshotResponse\"1\n" +
+	"\x1bRevertVolumeSnapshotRequest\x12\x12\n" +
+	"\x04uuid\x18\x01 \x01(\tR\x04uuid\"\x1e\n" +
+	"\x1cRevertVolumeSnapshotResponse\"\xfc\x01\n" +
+	"\x10VolumeBackupInfo\x12\x10\n" +
+	"\x03url\x18\x01 \x01(\tR\x03url\x12\x1f\n" +
+	"\vvolume_uuid\x18\x02 \x01(\tR\n" +
+	"volumeUuid\x12#\n" +
+	"\rsnapshot_uuid\x18\x03 \x01(\tR\fsnapshotUuid\x12\x18\n" +
+	"\aproject\x18\x04 \x01(\tR\aproject\x12\x1d\n" +
+	"\n" +
+	"size_bytes\x18\x05 \x01(\x03R\tsizeBytes\x12+\n" +
+	"\x12created_at_unix_ns\x18\x06 \x01(\x03R\x0fcreatedAtUnixNs\x12\x14\n" +
+	"\x05state\x18\a \x01(\tR\x05state\x12\x14\n" +
+	"\x05error\x18\b \x01(\tR\x05error\"\x93\x01\n" +
+	"\x19CreateVolumeBackupRequest\x12\x1f\n" +
+	"\vvolume_uuid\x18\x01 \x01(\tR\n" +
+	"volumeUuid\x12#\n" +
+	"\rsnapshot_uuid\x18\x02 \x01(\tR\fsnapshotUuid\x12\x16\n" +
+	"\x06target\x18\x03 \x01(\tR\x06target\x12\x18\n" +
+	"\aproject\x18\x04 \x01(\tR\aproject\"O\n" +
+	"\x1aCreateVolumeBackupResponse\x121\n" +
+	"\x06backup\x18\x01 \x01(\v2\x19.weft.v1.VolumeBackupInfoR\x06backup\"m\n" +
+	"\x18ListVolumeBackupsRequest\x12\x16\n" +
+	"\x06target\x18\x01 \x01(\tR\x06target\x12\x1f\n" +
+	"\vvolume_uuid\x18\x02 \x01(\tR\n" +
+	"volumeUuid\x12\x18\n" +
+	"\aproject\x18\x03 \x01(\tR\aproject\"P\n" +
+	"\x19ListVolumeBackupsResponse\x123\n" +
+	"\abackups\x18\x01 \x03(\v2\x19.weft.v1.VolumeBackupInfoR\abackups\"-\n" +
+	"\x19DeleteVolumeBackupRequest\x12\x10\n" +
+	"\x03url\x18\x01 \x01(\tR\x03url\"\x1c\n" +
+	"\x1aDeleteVolumeBackupResponse\"p\n" +
+	"\x1aRestoreVolumeBackupRequest\x12\x10\n" +
+	"\x03url\x18\x01 \x01(\tR\x03url\x12&\n" +
+	"\x0fnew_volume_name\x18\x02 \x01(\tR\rnewVolumeName\x12\x18\n" +
+	"\aproject\x18\x03 \x01(\tR\aproject\"J\n" +
+	"\x1bRestoreVolumeBackupResponse\x12+\n" +
+	"\x06volume\x18\x01 \x01(\v2\x13.weft.v1.VolumeInfoR\x06volume\"\xed\x01\n" +
 	"\rPlatformEvent\x12\x1c\n" +
 	"\n" +
 	"ts_unix_ns\x18\x01 \x01(\x03R\btsUnixNs\x12\x12\n" +
@@ -15573,7 +16211,7 @@ const file_weft_proto_rawDesc = "" +
 	"\x14VM_STATE_NOT_CREATED\x10\x01\x12\x14\n" +
 	"\x10VM_STATE_STOPPED\x10\x02\x12\x14\n" +
 	"\x10VM_STATE_RUNNING\x10\x03\x12\x12\n" +
-	"\x0eVM_STATE_ERROR\x10\x042\x92A\n" +
+	"\x0eVM_STATE_ERROR\x10\x042\xf3D\n" +
 	"\tWeftAgent\x12<\n" +
 	"\aListVMs\x12\x17.weft.v1.ListVMsRequest\x1a\x18.weft.v1.ListVMsResponse\x12?\n" +
 	"\bVMStatus\x12\x18.weft.v1.VMStatusRequest\x1a\x19.weft.v1.VMStatusResponse\x12<\n" +
@@ -15630,7 +16268,12 @@ const file_weft_proto_rawDesc = "" +
 	"\x14CreateVolumeSnapshot\x12$.weft.v1.CreateVolumeSnapshotRequest\x1a%.weft.v1.CreateVolumeSnapshotResponse\x12`\n" +
 	"\x13ListVolumeSnapshots\x12#.weft.v1.ListVolumeSnapshotsRequest\x1a$.weft.v1.ListVolumeSnapshotsResponse\x12f\n" +
 	"\x15RestoreVolumeSnapshot\x12%.weft.v1.RestoreVolumeSnapshotRequest\x1a&.weft.v1.RestoreVolumeSnapshotResponse\x12c\n" +
-	"\x14DeleteVolumeSnapshot\x12$.weft.v1.DeleteVolumeSnapshotRequest\x1a%.weft.v1.DeleteVolumeSnapshotResponse\x12D\n" +
+	"\x14RevertVolumeSnapshot\x12$.weft.v1.RevertVolumeSnapshotRequest\x1a%.weft.v1.RevertVolumeSnapshotResponse\x12c\n" +
+	"\x14DeleteVolumeSnapshot\x12$.weft.v1.DeleteVolumeSnapshotRequest\x1a%.weft.v1.DeleteVolumeSnapshotResponse\x12]\n" +
+	"\x12CreateVolumeBackup\x12\".weft.v1.CreateVolumeBackupRequest\x1a#.weft.v1.CreateVolumeBackupResponse\x12Z\n" +
+	"\x11ListVolumeBackups\x12!.weft.v1.ListVolumeBackupsRequest\x1a\".weft.v1.ListVolumeBackupsResponse\x12]\n" +
+	"\x12DeleteVolumeBackup\x12\".weft.v1.DeleteVolumeBackupRequest\x1a#.weft.v1.DeleteVolumeBackupResponse\x12`\n" +
+	"\x13RestoreVolumeBackup\x12#.weft.v1.RestoreVolumeBackupRequest\x1a$.weft.v1.RestoreVolumeBackupResponse\x12D\n" +
 	"\vWatchEvents\x12\x1b.weft.v1.WatchEventsRequest\x1a\x16.weft.v1.PlatformEvent0\x01\x12l\n" +
 	"\x17RenderNATSAuthorization\x12'.weft.v1.RenderNATSAuthorizationRequest\x1a(.weft.v1.RenderNATSAuthorizationResponse\x12K\n" +
 	"\fRegisterHost\x12\x1c.weft.v1.RegisterHostRequest\x1a\x1d.weft.v1.RegisterHostResponse\x12B\n" +
@@ -15701,7 +16344,7 @@ func file_weft_proto_rawDescGZIP() []byte {
 }
 
 var file_weft_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_weft_proto_msgTypes = make([]protoimpl.MessageInfo, 262)
+var file_weft_proto_msgTypes = make([]protoimpl.MessageInfo, 273)
 var file_weft_proto_goTypes = []any{
 	(VMState)(0),                                    // 0: weft.v1.VMState
 	(*VMInfo)(nil),                                  // 1: weft.v1.VMInfo
@@ -15821,151 +16464,162 @@ var file_weft_proto_goTypes = []any{
 	(*RestoreVolumeSnapshotResponse)(nil),           // 115: weft.v1.RestoreVolumeSnapshotResponse
 	(*DeleteVolumeSnapshotRequest)(nil),             // 116: weft.v1.DeleteVolumeSnapshotRequest
 	(*DeleteVolumeSnapshotResponse)(nil),            // 117: weft.v1.DeleteVolumeSnapshotResponse
-	(*PlatformEvent)(nil),                           // 118: weft.v1.PlatformEvent
-	(*WatchEventsRequest)(nil),                      // 119: weft.v1.WatchEventsRequest
-	(*RenderNATSAuthorizationRequest)(nil),          // 120: weft.v1.RenderNATSAuthorizationRequest
-	(*RenderNATSAuthorizationResponse)(nil),         // 121: weft.v1.RenderNATSAuthorizationResponse
-	(*MicroVMShare)(nil),                            // 122: weft.v1.MicroVMShare
-	(*RegisterMicroVMRequest)(nil),                  // 123: weft.v1.RegisterMicroVMRequest
-	(*RegisterMicroVMResponse)(nil),                 // 124: weft.v1.RegisterMicroVMResponse
-	(*CubeFSMount)(nil),                             // 125: weft.v1.CubeFSMount
-	(*ShareMount)(nil),                              // 126: weft.v1.ShareMount
-	(*PublishShareToProjectRequest)(nil),            // 127: weft.v1.PublishShareToProjectRequest
-	(*PublishShareToProjectResponse)(nil),           // 128: weft.v1.PublishShareToProjectResponse
-	(*FederationPeerInfo)(nil),                      // 129: weft.v1.FederationPeerInfo
-	(*ListFederationPeersRequest)(nil),              // 130: weft.v1.ListFederationPeersRequest
-	(*ListFederationPeersResponse)(nil),             // 131: weft.v1.ListFederationPeersResponse
-	(*PluginInput)(nil),                             // 132: weft.v1.PluginInput
-	(*PluginCatalogueEntry)(nil),                    // 133: weft.v1.PluginCatalogueEntry
-	(*PluginInstance)(nil),                          // 134: weft.v1.PluginInstance
-	(*ListPluginCatalogueRequest)(nil),              // 135: weft.v1.ListPluginCatalogueRequest
-	(*ListPluginCatalogueResponse)(nil),             // 136: weft.v1.ListPluginCatalogueResponse
-	(*ListInstalledPluginsRequest)(nil),             // 137: weft.v1.ListInstalledPluginsRequest
-	(*ListInstalledPluginsResponse)(nil),            // 138: weft.v1.ListInstalledPluginsResponse
-	(*InstallPluginRequest)(nil),                    // 139: weft.v1.InstallPluginRequest
-	(*InstallPluginResponse)(nil),                   // 140: weft.v1.InstallPluginResponse
-	(*HostInfo)(nil),                                // 141: weft.v1.HostInfo
-	(*RegisterHostRequest)(nil),                     // 142: weft.v1.RegisterHostRequest
-	(*RegisterHostResponse)(nil),                    // 143: weft.v1.RegisterHostResponse
-	(*ListHostsRequest)(nil),                        // 144: weft.v1.ListHostsRequest
-	(*ListHostsResponse)(nil),                       // 145: weft.v1.ListHostsResponse
-	(*GetHostRequest)(nil),                          // 146: weft.v1.GetHostRequest
-	(*GetHostResponse)(nil),                         // 147: weft.v1.GetHostResponse
-	(*HeartbeatHostRequest)(nil),                    // 148: weft.v1.HeartbeatHostRequest
-	(*HeartbeatHostResponse)(nil),                   // 149: weft.v1.HeartbeatHostResponse
-	(*SetHostStateRequest)(nil),                     // 150: weft.v1.SetHostStateRequest
-	(*SetHostStateResponse)(nil),                    // 151: weft.v1.SetHostStateResponse
-	(*SetHostLabelsRequest)(nil),                    // 152: weft.v1.SetHostLabelsRequest
-	(*SetHostLabelsResponse)(nil),                   // 153: weft.v1.SetHostLabelsResponse
-	(*SetHostCordonedRequest)(nil),                  // 154: weft.v1.SetHostCordonedRequest
-	(*SetHostCordonedResponse)(nil),                 // 155: weft.v1.SetHostCordonedResponse
-	(*DeleteHostRequest)(nil),                       // 156: weft.v1.DeleteHostRequest
-	(*DeleteHostResponse)(nil),                      // 157: weft.v1.DeleteHostResponse
-	(*AgentMessage)(nil),                            // 158: weft.v1.AgentMessage
-	(*ControlMessage)(nil),                          // 159: weft.v1.ControlMessage
-	(*AgentHello)(nil),                              // 160: weft.v1.AgentHello
-	(*ControlHelloAck)(nil),                         // 161: weft.v1.ControlHelloAck
-	(*ControlPing)(nil),                             // 162: weft.v1.ControlPing
-	(*AgentPong)(nil),                               // 163: weft.v1.AgentPong
-	(*DriverRequest)(nil),                           // 164: weft.v1.DriverRequest
-	(*DriverReply)(nil),                             // 165: weft.v1.DriverReply
-	(*CreateVMOp)(nil),                              // 166: weft.v1.CreateVMOp
-	(*CreateVMResult)(nil),                          // 167: weft.v1.CreateVMResult
-	(*RegisterMicroVMOp)(nil),                       // 168: weft.v1.RegisterMicroVMOp
-	(*RegisterMicroVMResult)(nil),                   // 169: weft.v1.RegisterMicroVMResult
-	(*StartVMOp)(nil),                               // 170: weft.v1.StartVMOp
-	(*StartVMResult)(nil),                           // 171: weft.v1.StartVMResult
-	(*StopVMOp)(nil),                                // 172: weft.v1.StopVMOp
-	(*StopVMResult)(nil),                            // 173: weft.v1.StopVMResult
-	(*DeleteVMOp)(nil),                              // 174: weft.v1.DeleteVMOp
-	(*DeleteVMResult)(nil),                          // 175: weft.v1.DeleteVMResult
-	(*TenantInfo)(nil),                              // 176: weft.v1.TenantInfo
-	(*ListTenantsRequest)(nil),                      // 177: weft.v1.ListTenantsRequest
-	(*ListTenantsResponse)(nil),                     // 178: weft.v1.ListTenantsResponse
-	(*CreateTenantRequest)(nil),                     // 179: weft.v1.CreateTenantRequest
-	(*CreateTenantResponse)(nil),                    // 180: weft.v1.CreateTenantResponse
-	(*DeleteTenantRequest)(nil),                     // 181: weft.v1.DeleteTenantRequest
-	(*DeleteTenantResponse)(nil),                    // 182: weft.v1.DeleteTenantResponse
-	(*AddTenantAdminRequest)(nil),                   // 183: weft.v1.AddTenantAdminRequest
-	(*AddTenantAdminResponse)(nil),                  // 184: weft.v1.AddTenantAdminResponse
-	(*RemoveTenantAdminRequest)(nil),                // 185: weft.v1.RemoveTenantAdminRequest
-	(*RemoveTenantAdminResponse)(nil),               // 186: weft.v1.RemoveTenantAdminResponse
-	(*AddTenantMemberRequest)(nil),                  // 187: weft.v1.AddTenantMemberRequest
-	(*AddTenantMemberResponse)(nil),                 // 188: weft.v1.AddTenantMemberResponse
-	(*RemoveTenantMemberRequest)(nil),               // 189: weft.v1.RemoveTenantMemberRequest
-	(*RemoveTenantMemberResponse)(nil),              // 190: weft.v1.RemoveTenantMemberResponse
-	(*Quotas)(nil),                                  // 191: weft.v1.Quotas
-	(*GetTenantQuotaRequest)(nil),                   // 192: weft.v1.GetTenantQuotaRequest
-	(*GetTenantQuotaResponse)(nil),                  // 193: weft.v1.GetTenantQuotaResponse
-	(*SetTenantQuotaRequest)(nil),                   // 194: weft.v1.SetTenantQuotaRequest
-	(*SetTenantQuotaResponse)(nil),                  // 195: weft.v1.SetTenantQuotaResponse
-	(*GetProjectQuotaRequest)(nil),                  // 196: weft.v1.GetProjectQuotaRequest
-	(*GetProjectQuotaResponse)(nil),                 // 197: weft.v1.GetProjectQuotaResponse
-	(*SetProjectQuotaRequest)(nil),                  // 198: weft.v1.SetProjectQuotaRequest
-	(*SetProjectQuotaResponse)(nil),                 // 199: weft.v1.SetProjectQuotaResponse
-	(*ShareInfo)(nil),                               // 200: weft.v1.ShareInfo
-	(*ListSharesRequest)(nil),                       // 201: weft.v1.ListSharesRequest
-	(*ListSharesResponse)(nil),                      // 202: weft.v1.ListSharesResponse
-	(*CreateShareRequest)(nil),                      // 203: weft.v1.CreateShareRequest
-	(*CreateShareResponse)(nil),                     // 204: weft.v1.CreateShareResponse
-	(*DeleteShareRequest)(nil),                      // 205: weft.v1.DeleteShareRequest
-	(*DeleteShareResponse)(nil),                     // 206: weft.v1.DeleteShareResponse
-	(*FloatingIPInfo)(nil),                          // 207: weft.v1.FloatingIPInfo
-	(*ListFloatingIPsRequest)(nil),                  // 208: weft.v1.ListFloatingIPsRequest
-	(*ListFloatingIPsResponse)(nil),                 // 209: weft.v1.ListFloatingIPsResponse
-	(*AllocateFloatingIPRequest)(nil),               // 210: weft.v1.AllocateFloatingIPRequest
-	(*AllocateFloatingIPResponse)(nil),              // 211: weft.v1.AllocateFloatingIPResponse
-	(*ReleaseFloatingIPRequest)(nil),                // 212: weft.v1.ReleaseFloatingIPRequest
-	(*ReleaseFloatingIPResponse)(nil),               // 213: weft.v1.ReleaseFloatingIPResponse
-	(*MapFloatingIPRequest)(nil),                    // 214: weft.v1.MapFloatingIPRequest
-	(*MapFloatingIPResponse)(nil),                   // 215: weft.v1.MapFloatingIPResponse
-	(*UnmapFloatingIPRequest)(nil),                  // 216: weft.v1.UnmapFloatingIPRequest
-	(*UnmapFloatingIPResponse)(nil),                 // 217: weft.v1.UnmapFloatingIPResponse
-	(*Flavor)(nil),                                  // 218: weft.v1.Flavor
-	(*ListFlavorsRequest)(nil),                      // 219: weft.v1.ListFlavorsRequest
-	(*ListFlavorsResponse)(nil),                     // 220: weft.v1.ListFlavorsResponse
-	(*GetFlavorRequest)(nil),                        // 221: weft.v1.GetFlavorRequest
-	(*GetFlavorResponse)(nil),                       // 222: weft.v1.GetFlavorResponse
-	(*SetFlavorRequest)(nil),                        // 223: weft.v1.SetFlavorRequest
-	(*SetFlavorResponse)(nil),                       // 224: weft.v1.SetFlavorResponse
-	(*DeleteFlavorRequest)(nil),                     // 225: weft.v1.DeleteFlavorRequest
-	(*DeleteFlavorResponse)(nil),                    // 226: weft.v1.DeleteFlavorResponse
-	(*Script)(nil),                                  // 227: weft.v1.Script
-	(*ListScriptsRequest)(nil),                      // 228: weft.v1.ListScriptsRequest
-	(*ListScriptsResponse)(nil),                     // 229: weft.v1.ListScriptsResponse
-	(*GetScriptRequest)(nil),                        // 230: weft.v1.GetScriptRequest
-	(*GetScriptResponse)(nil),                       // 231: weft.v1.GetScriptResponse
-	(*SetScriptRequest)(nil),                        // 232: weft.v1.SetScriptRequest
-	(*SetScriptResponse)(nil),                       // 233: weft.v1.SetScriptResponse
-	(*DeleteScriptRequest)(nil),                     // 234: weft.v1.DeleteScriptRequest
-	(*DeleteScriptResponse)(nil),                    // 235: weft.v1.DeleteScriptResponse
-	(*VMProperty)(nil),                              // 236: weft.v1.VMProperty
-	(*ListVMPropertiesRequest)(nil),                 // 237: weft.v1.ListVMPropertiesRequest
-	(*ListVMPropertiesResponse)(nil),                // 238: weft.v1.ListVMPropertiesResponse
-	(*SetVMPropertyRequest)(nil),                    // 239: weft.v1.SetVMPropertyRequest
-	(*SetVMPropertyResponse)(nil),                   // 240: weft.v1.SetVMPropertyResponse
-	(*DeleteVMPropertyRequest)(nil),                 // 241: weft.v1.DeleteVMPropertyRequest
-	(*DeleteVMPropertyResponse)(nil),                // 242: weft.v1.DeleteVMPropertyResponse
-	(*UEFIVar)(nil),                                 // 243: weft.v1.UEFIVar
-	(*ListUEFIVarsRequest)(nil),                     // 244: weft.v1.ListUEFIVarsRequest
-	(*ListUEFIVarsResponse)(nil),                    // 245: weft.v1.ListUEFIVarsResponse
-	(*SetUEFIVarRequest)(nil),                       // 246: weft.v1.SetUEFIVarRequest
-	(*SetUEFIVarResponse)(nil),                      // 247: weft.v1.SetUEFIVarResponse
-	(*DeleteUEFIVarRequest)(nil),                    // 248: weft.v1.DeleteUEFIVarRequest
-	(*DeleteUEFIVarResponse)(nil),                   // 249: weft.v1.DeleteUEFIVarResponse
-	(*VMSSHKey)(nil),                                // 250: weft.v1.VMSSHKey
-	(*ListVMSSHKeysRequest)(nil),                    // 251: weft.v1.ListVMSSHKeysRequest
-	(*ListVMSSHKeysResponse)(nil),                   // 252: weft.v1.ListVMSSHKeysResponse
-	(*AddVMSSHKeyRequest)(nil),                      // 253: weft.v1.AddVMSSHKeyRequest
-	(*AddVMSSHKeyResponse)(nil),                     // 254: weft.v1.AddVMSSHKeyResponse
-	(*RemoveVMSSHKeyRequest)(nil),                   // 255: weft.v1.RemoveVMSSHKeyRequest
-	(*RemoveVMSSHKeyResponse)(nil),                  // 256: weft.v1.RemoveVMSSHKeyResponse
-	nil,                                             // 257: weft.v1.TimingEvent.MetaEntry
-	nil,                                             // 258: weft.v1.PlatformEvent.MetaEntry
-	nil,                                             // 259: weft.v1.InstallPluginRequest.InputsEntry
-	nil,                                             // 260: weft.v1.HostInfo.LabelsEntry
-	nil,                                             // 261: weft.v1.RegisterHostRequest.LabelsEntry
-	nil,                                             // 262: weft.v1.SetHostLabelsRequest.LabelsEntry
+	(*RevertVolumeSnapshotRequest)(nil),             // 118: weft.v1.RevertVolumeSnapshotRequest
+	(*RevertVolumeSnapshotResponse)(nil),            // 119: weft.v1.RevertVolumeSnapshotResponse
+	(*VolumeBackupInfo)(nil),                        // 120: weft.v1.VolumeBackupInfo
+	(*CreateVolumeBackupRequest)(nil),               // 121: weft.v1.CreateVolumeBackupRequest
+	(*CreateVolumeBackupResponse)(nil),              // 122: weft.v1.CreateVolumeBackupResponse
+	(*ListVolumeBackupsRequest)(nil),                // 123: weft.v1.ListVolumeBackupsRequest
+	(*ListVolumeBackupsResponse)(nil),               // 124: weft.v1.ListVolumeBackupsResponse
+	(*DeleteVolumeBackupRequest)(nil),               // 125: weft.v1.DeleteVolumeBackupRequest
+	(*DeleteVolumeBackupResponse)(nil),              // 126: weft.v1.DeleteVolumeBackupResponse
+	(*RestoreVolumeBackupRequest)(nil),              // 127: weft.v1.RestoreVolumeBackupRequest
+	(*RestoreVolumeBackupResponse)(nil),             // 128: weft.v1.RestoreVolumeBackupResponse
+	(*PlatformEvent)(nil),                           // 129: weft.v1.PlatformEvent
+	(*WatchEventsRequest)(nil),                      // 130: weft.v1.WatchEventsRequest
+	(*RenderNATSAuthorizationRequest)(nil),          // 131: weft.v1.RenderNATSAuthorizationRequest
+	(*RenderNATSAuthorizationResponse)(nil),         // 132: weft.v1.RenderNATSAuthorizationResponse
+	(*MicroVMShare)(nil),                            // 133: weft.v1.MicroVMShare
+	(*RegisterMicroVMRequest)(nil),                  // 134: weft.v1.RegisterMicroVMRequest
+	(*RegisterMicroVMResponse)(nil),                 // 135: weft.v1.RegisterMicroVMResponse
+	(*CubeFSMount)(nil),                             // 136: weft.v1.CubeFSMount
+	(*ShareMount)(nil),                              // 137: weft.v1.ShareMount
+	(*PublishShareToProjectRequest)(nil),            // 138: weft.v1.PublishShareToProjectRequest
+	(*PublishShareToProjectResponse)(nil),           // 139: weft.v1.PublishShareToProjectResponse
+	(*FederationPeerInfo)(nil),                      // 140: weft.v1.FederationPeerInfo
+	(*ListFederationPeersRequest)(nil),              // 141: weft.v1.ListFederationPeersRequest
+	(*ListFederationPeersResponse)(nil),             // 142: weft.v1.ListFederationPeersResponse
+	(*PluginInput)(nil),                             // 143: weft.v1.PluginInput
+	(*PluginCatalogueEntry)(nil),                    // 144: weft.v1.PluginCatalogueEntry
+	(*PluginInstance)(nil),                          // 145: weft.v1.PluginInstance
+	(*ListPluginCatalogueRequest)(nil),              // 146: weft.v1.ListPluginCatalogueRequest
+	(*ListPluginCatalogueResponse)(nil),             // 147: weft.v1.ListPluginCatalogueResponse
+	(*ListInstalledPluginsRequest)(nil),             // 148: weft.v1.ListInstalledPluginsRequest
+	(*ListInstalledPluginsResponse)(nil),            // 149: weft.v1.ListInstalledPluginsResponse
+	(*InstallPluginRequest)(nil),                    // 150: weft.v1.InstallPluginRequest
+	(*InstallPluginResponse)(nil),                   // 151: weft.v1.InstallPluginResponse
+	(*HostInfo)(nil),                                // 152: weft.v1.HostInfo
+	(*RegisterHostRequest)(nil),                     // 153: weft.v1.RegisterHostRequest
+	(*RegisterHostResponse)(nil),                    // 154: weft.v1.RegisterHostResponse
+	(*ListHostsRequest)(nil),                        // 155: weft.v1.ListHostsRequest
+	(*ListHostsResponse)(nil),                       // 156: weft.v1.ListHostsResponse
+	(*GetHostRequest)(nil),                          // 157: weft.v1.GetHostRequest
+	(*GetHostResponse)(nil),                         // 158: weft.v1.GetHostResponse
+	(*HeartbeatHostRequest)(nil),                    // 159: weft.v1.HeartbeatHostRequest
+	(*HeartbeatHostResponse)(nil),                   // 160: weft.v1.HeartbeatHostResponse
+	(*SetHostStateRequest)(nil),                     // 161: weft.v1.SetHostStateRequest
+	(*SetHostStateResponse)(nil),                    // 162: weft.v1.SetHostStateResponse
+	(*SetHostLabelsRequest)(nil),                    // 163: weft.v1.SetHostLabelsRequest
+	(*SetHostLabelsResponse)(nil),                   // 164: weft.v1.SetHostLabelsResponse
+	(*SetHostCordonedRequest)(nil),                  // 165: weft.v1.SetHostCordonedRequest
+	(*SetHostCordonedResponse)(nil),                 // 166: weft.v1.SetHostCordonedResponse
+	(*DeleteHostRequest)(nil),                       // 167: weft.v1.DeleteHostRequest
+	(*DeleteHostResponse)(nil),                      // 168: weft.v1.DeleteHostResponse
+	(*AgentMessage)(nil),                            // 169: weft.v1.AgentMessage
+	(*ControlMessage)(nil),                          // 170: weft.v1.ControlMessage
+	(*AgentHello)(nil),                              // 171: weft.v1.AgentHello
+	(*ControlHelloAck)(nil),                         // 172: weft.v1.ControlHelloAck
+	(*ControlPing)(nil),                             // 173: weft.v1.ControlPing
+	(*AgentPong)(nil),                               // 174: weft.v1.AgentPong
+	(*DriverRequest)(nil),                           // 175: weft.v1.DriverRequest
+	(*DriverReply)(nil),                             // 176: weft.v1.DriverReply
+	(*CreateVMOp)(nil),                              // 177: weft.v1.CreateVMOp
+	(*CreateVMResult)(nil),                          // 178: weft.v1.CreateVMResult
+	(*RegisterMicroVMOp)(nil),                       // 179: weft.v1.RegisterMicroVMOp
+	(*RegisterMicroVMResult)(nil),                   // 180: weft.v1.RegisterMicroVMResult
+	(*StartVMOp)(nil),                               // 181: weft.v1.StartVMOp
+	(*StartVMResult)(nil),                           // 182: weft.v1.StartVMResult
+	(*StopVMOp)(nil),                                // 183: weft.v1.StopVMOp
+	(*StopVMResult)(nil),                            // 184: weft.v1.StopVMResult
+	(*DeleteVMOp)(nil),                              // 185: weft.v1.DeleteVMOp
+	(*DeleteVMResult)(nil),                          // 186: weft.v1.DeleteVMResult
+	(*TenantInfo)(nil),                              // 187: weft.v1.TenantInfo
+	(*ListTenantsRequest)(nil),                      // 188: weft.v1.ListTenantsRequest
+	(*ListTenantsResponse)(nil),                     // 189: weft.v1.ListTenantsResponse
+	(*CreateTenantRequest)(nil),                     // 190: weft.v1.CreateTenantRequest
+	(*CreateTenantResponse)(nil),                    // 191: weft.v1.CreateTenantResponse
+	(*DeleteTenantRequest)(nil),                     // 192: weft.v1.DeleteTenantRequest
+	(*DeleteTenantResponse)(nil),                    // 193: weft.v1.DeleteTenantResponse
+	(*AddTenantAdminRequest)(nil),                   // 194: weft.v1.AddTenantAdminRequest
+	(*AddTenantAdminResponse)(nil),                  // 195: weft.v1.AddTenantAdminResponse
+	(*RemoveTenantAdminRequest)(nil),                // 196: weft.v1.RemoveTenantAdminRequest
+	(*RemoveTenantAdminResponse)(nil),               // 197: weft.v1.RemoveTenantAdminResponse
+	(*AddTenantMemberRequest)(nil),                  // 198: weft.v1.AddTenantMemberRequest
+	(*AddTenantMemberResponse)(nil),                 // 199: weft.v1.AddTenantMemberResponse
+	(*RemoveTenantMemberRequest)(nil),               // 200: weft.v1.RemoveTenantMemberRequest
+	(*RemoveTenantMemberResponse)(nil),              // 201: weft.v1.RemoveTenantMemberResponse
+	(*Quotas)(nil),                                  // 202: weft.v1.Quotas
+	(*GetTenantQuotaRequest)(nil),                   // 203: weft.v1.GetTenantQuotaRequest
+	(*GetTenantQuotaResponse)(nil),                  // 204: weft.v1.GetTenantQuotaResponse
+	(*SetTenantQuotaRequest)(nil),                   // 205: weft.v1.SetTenantQuotaRequest
+	(*SetTenantQuotaResponse)(nil),                  // 206: weft.v1.SetTenantQuotaResponse
+	(*GetProjectQuotaRequest)(nil),                  // 207: weft.v1.GetProjectQuotaRequest
+	(*GetProjectQuotaResponse)(nil),                 // 208: weft.v1.GetProjectQuotaResponse
+	(*SetProjectQuotaRequest)(nil),                  // 209: weft.v1.SetProjectQuotaRequest
+	(*SetProjectQuotaResponse)(nil),                 // 210: weft.v1.SetProjectQuotaResponse
+	(*ShareInfo)(nil),                               // 211: weft.v1.ShareInfo
+	(*ListSharesRequest)(nil),                       // 212: weft.v1.ListSharesRequest
+	(*ListSharesResponse)(nil),                      // 213: weft.v1.ListSharesResponse
+	(*CreateShareRequest)(nil),                      // 214: weft.v1.CreateShareRequest
+	(*CreateShareResponse)(nil),                     // 215: weft.v1.CreateShareResponse
+	(*DeleteShareRequest)(nil),                      // 216: weft.v1.DeleteShareRequest
+	(*DeleteShareResponse)(nil),                     // 217: weft.v1.DeleteShareResponse
+	(*FloatingIPInfo)(nil),                          // 218: weft.v1.FloatingIPInfo
+	(*ListFloatingIPsRequest)(nil),                  // 219: weft.v1.ListFloatingIPsRequest
+	(*ListFloatingIPsResponse)(nil),                 // 220: weft.v1.ListFloatingIPsResponse
+	(*AllocateFloatingIPRequest)(nil),               // 221: weft.v1.AllocateFloatingIPRequest
+	(*AllocateFloatingIPResponse)(nil),              // 222: weft.v1.AllocateFloatingIPResponse
+	(*ReleaseFloatingIPRequest)(nil),                // 223: weft.v1.ReleaseFloatingIPRequest
+	(*ReleaseFloatingIPResponse)(nil),               // 224: weft.v1.ReleaseFloatingIPResponse
+	(*MapFloatingIPRequest)(nil),                    // 225: weft.v1.MapFloatingIPRequest
+	(*MapFloatingIPResponse)(nil),                   // 226: weft.v1.MapFloatingIPResponse
+	(*UnmapFloatingIPRequest)(nil),                  // 227: weft.v1.UnmapFloatingIPRequest
+	(*UnmapFloatingIPResponse)(nil),                 // 228: weft.v1.UnmapFloatingIPResponse
+	(*Flavor)(nil),                                  // 229: weft.v1.Flavor
+	(*ListFlavorsRequest)(nil),                      // 230: weft.v1.ListFlavorsRequest
+	(*ListFlavorsResponse)(nil),                     // 231: weft.v1.ListFlavorsResponse
+	(*GetFlavorRequest)(nil),                        // 232: weft.v1.GetFlavorRequest
+	(*GetFlavorResponse)(nil),                       // 233: weft.v1.GetFlavorResponse
+	(*SetFlavorRequest)(nil),                        // 234: weft.v1.SetFlavorRequest
+	(*SetFlavorResponse)(nil),                       // 235: weft.v1.SetFlavorResponse
+	(*DeleteFlavorRequest)(nil),                     // 236: weft.v1.DeleteFlavorRequest
+	(*DeleteFlavorResponse)(nil),                    // 237: weft.v1.DeleteFlavorResponse
+	(*Script)(nil),                                  // 238: weft.v1.Script
+	(*ListScriptsRequest)(nil),                      // 239: weft.v1.ListScriptsRequest
+	(*ListScriptsResponse)(nil),                     // 240: weft.v1.ListScriptsResponse
+	(*GetScriptRequest)(nil),                        // 241: weft.v1.GetScriptRequest
+	(*GetScriptResponse)(nil),                       // 242: weft.v1.GetScriptResponse
+	(*SetScriptRequest)(nil),                        // 243: weft.v1.SetScriptRequest
+	(*SetScriptResponse)(nil),                       // 244: weft.v1.SetScriptResponse
+	(*DeleteScriptRequest)(nil),                     // 245: weft.v1.DeleteScriptRequest
+	(*DeleteScriptResponse)(nil),                    // 246: weft.v1.DeleteScriptResponse
+	(*VMProperty)(nil),                              // 247: weft.v1.VMProperty
+	(*ListVMPropertiesRequest)(nil),                 // 248: weft.v1.ListVMPropertiesRequest
+	(*ListVMPropertiesResponse)(nil),                // 249: weft.v1.ListVMPropertiesResponse
+	(*SetVMPropertyRequest)(nil),                    // 250: weft.v1.SetVMPropertyRequest
+	(*SetVMPropertyResponse)(nil),                   // 251: weft.v1.SetVMPropertyResponse
+	(*DeleteVMPropertyRequest)(nil),                 // 252: weft.v1.DeleteVMPropertyRequest
+	(*DeleteVMPropertyResponse)(nil),                // 253: weft.v1.DeleteVMPropertyResponse
+	(*UEFIVar)(nil),                                 // 254: weft.v1.UEFIVar
+	(*ListUEFIVarsRequest)(nil),                     // 255: weft.v1.ListUEFIVarsRequest
+	(*ListUEFIVarsResponse)(nil),                    // 256: weft.v1.ListUEFIVarsResponse
+	(*SetUEFIVarRequest)(nil),                       // 257: weft.v1.SetUEFIVarRequest
+	(*SetUEFIVarResponse)(nil),                      // 258: weft.v1.SetUEFIVarResponse
+	(*DeleteUEFIVarRequest)(nil),                    // 259: weft.v1.DeleteUEFIVarRequest
+	(*DeleteUEFIVarResponse)(nil),                   // 260: weft.v1.DeleteUEFIVarResponse
+	(*VMSSHKey)(nil),                                // 261: weft.v1.VMSSHKey
+	(*ListVMSSHKeysRequest)(nil),                    // 262: weft.v1.ListVMSSHKeysRequest
+	(*ListVMSSHKeysResponse)(nil),                   // 263: weft.v1.ListVMSSHKeysResponse
+	(*AddVMSSHKeyRequest)(nil),                      // 264: weft.v1.AddVMSSHKeyRequest
+	(*AddVMSSHKeyResponse)(nil),                     // 265: weft.v1.AddVMSSHKeyResponse
+	(*RemoveVMSSHKeyRequest)(nil),                   // 266: weft.v1.RemoveVMSSHKeyRequest
+	(*RemoveVMSSHKeyResponse)(nil),                  // 267: weft.v1.RemoveVMSSHKeyResponse
+	nil,                                             // 268: weft.v1.TimingEvent.MetaEntry
+	nil,                                             // 269: weft.v1.PlatformEvent.MetaEntry
+	nil,                                             // 270: weft.v1.InstallPluginRequest.InputsEntry
+	nil,                                             // 271: weft.v1.HostInfo.LabelsEntry
+	nil,                                             // 272: weft.v1.RegisterHostRequest.LabelsEntry
+	nil,                                             // 273: weft.v1.SetHostLabelsRequest.LabelsEntry
 }
 var file_weft_proto_depIdxs = []int32{
 	0,   // 0: weft.v1.VMInfo.state:type_name -> weft.v1.VMState
@@ -15985,7 +16639,7 @@ var file_weft_proto_depIdxs = []int32{
 	26,  // 14: weft.v1.PatchImageRequest.delete_ops:type_name -> weft.v1.DiskDeleteOp
 	27,  // 15: weft.v1.PatchImageRequest.mod_ops:type_name -> weft.v1.DiskModOp
 	39,  // 16: weft.v1.ListImagesResponse.images:type_name -> weft.v1.ImageInfo
-	257, // 17: weft.v1.TimingEvent.meta:type_name -> weft.v1.TimingEvent.MetaEntry
+	268, // 17: weft.v1.TimingEvent.meta:type_name -> weft.v1.TimingEvent.MetaEntry
 	45,  // 18: weft.v1.VMTimingsResponse.events:type_name -> weft.v1.TimingEvent
 	56,  // 19: weft.v1.ListUsersResponse.users:type_name -> weft.v1.UserInfo
 	56,  // 20: weft.v1.GetUserResponse.user:type_name -> weft.v1.UserInfo
@@ -16013,293 +16667,306 @@ var file_weft_proto_depIdxs = []int32{
 	109, // 42: weft.v1.CreateVolumeSnapshotResponse.snapshot:type_name -> weft.v1.VolumeSnapshotInfo
 	109, // 43: weft.v1.ListVolumeSnapshotsResponse.snapshots:type_name -> weft.v1.VolumeSnapshotInfo
 	94,  // 44: weft.v1.RestoreVolumeSnapshotResponse.volume:type_name -> weft.v1.VolumeInfo
-	258, // 45: weft.v1.PlatformEvent.meta:type_name -> weft.v1.PlatformEvent.MetaEntry
-	122, // 46: weft.v1.RegisterMicroVMRequest.shares:type_name -> weft.v1.MicroVMShare
-	19,  // 47: weft.v1.RegisterMicroVMRequest.requested_gpus:type_name -> weft.v1.GPURequest
-	20,  // 48: weft.v1.RegisterMicroVMRequest.requested_pci:type_name -> weft.v1.PCIPassthroughRequest
-	125, // 49: weft.v1.ShareMount.cubefs:type_name -> weft.v1.CubeFSMount
-	126, // 50: weft.v1.PublishShareToProjectRequest.mount:type_name -> weft.v1.ShareMount
-	129, // 51: weft.v1.ListFederationPeersResponse.peers:type_name -> weft.v1.FederationPeerInfo
-	132, // 52: weft.v1.PluginCatalogueEntry.inputs:type_name -> weft.v1.PluginInput
-	133, // 53: weft.v1.ListPluginCatalogueResponse.entries:type_name -> weft.v1.PluginCatalogueEntry
-	134, // 54: weft.v1.ListInstalledPluginsResponse.instances:type_name -> weft.v1.PluginInstance
-	259, // 55: weft.v1.InstallPluginRequest.inputs:type_name -> weft.v1.InstallPluginRequest.InputsEntry
-	260, // 56: weft.v1.HostInfo.labels:type_name -> weft.v1.HostInfo.LabelsEntry
-	261, // 57: weft.v1.RegisterHostRequest.labels:type_name -> weft.v1.RegisterHostRequest.LabelsEntry
-	141, // 58: weft.v1.RegisterHostResponse.host:type_name -> weft.v1.HostInfo
-	141, // 59: weft.v1.ListHostsResponse.hosts:type_name -> weft.v1.HostInfo
-	141, // 60: weft.v1.GetHostResponse.host:type_name -> weft.v1.HostInfo
-	262, // 61: weft.v1.SetHostLabelsRequest.labels:type_name -> weft.v1.SetHostLabelsRequest.LabelsEntry
-	160, // 62: weft.v1.AgentMessage.hello:type_name -> weft.v1.AgentHello
-	163, // 63: weft.v1.AgentMessage.pong:type_name -> weft.v1.AgentPong
-	165, // 64: weft.v1.AgentMessage.reply:type_name -> weft.v1.DriverReply
-	161, // 65: weft.v1.ControlMessage.hello_ack:type_name -> weft.v1.ControlHelloAck
-	162, // 66: weft.v1.ControlMessage.ping:type_name -> weft.v1.ControlPing
-	164, // 67: weft.v1.ControlMessage.request:type_name -> weft.v1.DriverRequest
-	166, // 68: weft.v1.DriverRequest.create_vm:type_name -> weft.v1.CreateVMOp
-	168, // 69: weft.v1.DriverRequest.register_micro_vm:type_name -> weft.v1.RegisterMicroVMOp
-	170, // 70: weft.v1.DriverRequest.start_vm:type_name -> weft.v1.StartVMOp
-	172, // 71: weft.v1.DriverRequest.stop_vm:type_name -> weft.v1.StopVMOp
-	174, // 72: weft.v1.DriverRequest.delete_vm:type_name -> weft.v1.DeleteVMOp
-	167, // 73: weft.v1.DriverReply.create_vm:type_name -> weft.v1.CreateVMResult
-	169, // 74: weft.v1.DriverReply.register_micro_vm:type_name -> weft.v1.RegisterMicroVMResult
-	171, // 75: weft.v1.DriverReply.start_vm:type_name -> weft.v1.StartVMResult
-	173, // 76: weft.v1.DriverReply.stop_vm:type_name -> weft.v1.StopVMResult
-	175, // 77: weft.v1.DriverReply.delete_vm:type_name -> weft.v1.DeleteVMResult
-	122, // 78: weft.v1.RegisterMicroVMOp.shares:type_name -> weft.v1.MicroVMShare
-	176, // 79: weft.v1.ListTenantsResponse.tenants:type_name -> weft.v1.TenantInfo
-	176, // 80: weft.v1.CreateTenantResponse.tenant:type_name -> weft.v1.TenantInfo
-	176, // 81: weft.v1.AddTenantAdminResponse.tenant:type_name -> weft.v1.TenantInfo
-	176, // 82: weft.v1.RemoveTenantAdminResponse.tenant:type_name -> weft.v1.TenantInfo
-	176, // 83: weft.v1.AddTenantMemberResponse.tenant:type_name -> weft.v1.TenantInfo
-	176, // 84: weft.v1.RemoveTenantMemberResponse.tenant:type_name -> weft.v1.TenantInfo
-	191, // 85: weft.v1.GetTenantQuotaResponse.cap:type_name -> weft.v1.Quotas
-	191, // 86: weft.v1.GetTenantQuotaResponse.allocated:type_name -> weft.v1.Quotas
-	191, // 87: weft.v1.SetTenantQuotaRequest.cap:type_name -> weft.v1.Quotas
-	191, // 88: weft.v1.SetTenantQuotaResponse.cap:type_name -> weft.v1.Quotas
-	191, // 89: weft.v1.SetTenantQuotaResponse.allocated:type_name -> weft.v1.Quotas
-	191, // 90: weft.v1.GetProjectQuotaResponse.project:type_name -> weft.v1.Quotas
-	191, // 91: weft.v1.GetProjectQuotaResponse.tenant_cap:type_name -> weft.v1.Quotas
-	191, // 92: weft.v1.GetProjectQuotaResponse.siblings_total:type_name -> weft.v1.Quotas
-	191, // 93: weft.v1.SetProjectQuotaRequest.quota:type_name -> weft.v1.Quotas
-	191, // 94: weft.v1.SetProjectQuotaResponse.project:type_name -> weft.v1.Quotas
-	191, // 95: weft.v1.SetProjectQuotaResponse.tenant_cap:type_name -> weft.v1.Quotas
-	191, // 96: weft.v1.SetProjectQuotaResponse.siblings_total:type_name -> weft.v1.Quotas
-	200, // 97: weft.v1.ListSharesResponse.shares:type_name -> weft.v1.ShareInfo
-	200, // 98: weft.v1.CreateShareResponse.share:type_name -> weft.v1.ShareInfo
-	207, // 99: weft.v1.ListFloatingIPsResponse.floating_ips:type_name -> weft.v1.FloatingIPInfo
-	207, // 100: weft.v1.AllocateFloatingIPResponse.floating_ip:type_name -> weft.v1.FloatingIPInfo
-	207, // 101: weft.v1.MapFloatingIPResponse.floating_ip:type_name -> weft.v1.FloatingIPInfo
-	207, // 102: weft.v1.UnmapFloatingIPResponse.floating_ip:type_name -> weft.v1.FloatingIPInfo
-	218, // 103: weft.v1.ListFlavorsResponse.flavors:type_name -> weft.v1.Flavor
-	218, // 104: weft.v1.GetFlavorResponse.flavor:type_name -> weft.v1.Flavor
-	218, // 105: weft.v1.SetFlavorRequest.flavor:type_name -> weft.v1.Flavor
-	218, // 106: weft.v1.SetFlavorResponse.flavor:type_name -> weft.v1.Flavor
-	227, // 107: weft.v1.ListScriptsResponse.scripts:type_name -> weft.v1.Script
-	227, // 108: weft.v1.GetScriptResponse.script:type_name -> weft.v1.Script
-	227, // 109: weft.v1.SetScriptRequest.script:type_name -> weft.v1.Script
-	227, // 110: weft.v1.SetScriptResponse.script:type_name -> weft.v1.Script
-	236, // 111: weft.v1.ListVMPropertiesResponse.properties:type_name -> weft.v1.VMProperty
-	236, // 112: weft.v1.SetVMPropertyRequest.property:type_name -> weft.v1.VMProperty
-	236, // 113: weft.v1.SetVMPropertyResponse.property:type_name -> weft.v1.VMProperty
-	243, // 114: weft.v1.ListUEFIVarsResponse.vars:type_name -> weft.v1.UEFIVar
-	243, // 115: weft.v1.SetUEFIVarRequest.var:type_name -> weft.v1.UEFIVar
-	243, // 116: weft.v1.SetUEFIVarResponse.var:type_name -> weft.v1.UEFIVar
-	250, // 117: weft.v1.ListVMSSHKeysResponse.keys:type_name -> weft.v1.VMSSHKey
-	250, // 118: weft.v1.AddVMSSHKeyResponse.key:type_name -> weft.v1.VMSSHKey
-	11,  // 119: weft.v1.WeftAgent.ListVMs:input_type -> weft.v1.ListVMsRequest
-	17,  // 120: weft.v1.WeftAgent.VMStatus:input_type -> weft.v1.VMStatusRequest
-	13,  // 121: weft.v1.WeftAgent.StartVM:input_type -> weft.v1.StartVMRequest
-	15,  // 122: weft.v1.WeftAgent.StopVM:input_type -> weft.v1.StopVMRequest
-	21,  // 123: weft.v1.WeftAgent.CreateVM:input_type -> weft.v1.CreateVMRequest
-	23,  // 124: weft.v1.WeftAgent.DeleteVM:input_type -> weft.v1.DeleteVMRequest
-	28,  // 125: weft.v1.WeftAgent.ProvisionVM:input_type -> weft.v1.ProvisionVMRequest
-	30,  // 126: weft.v1.WeftAgent.DeprovisionVM:input_type -> weft.v1.DeprovisionVMRequest
-	32,  // 127: weft.v1.WeftAgent.PullImages:input_type -> weft.v1.PullImagesRequest
-	34,  // 128: weft.v1.WeftAgent.PullImage:input_type -> weft.v1.PullImageRequest
-	36,  // 129: weft.v1.WeftAgent.PatchImage:input_type -> weft.v1.PatchImageRequest
-	38,  // 130: weft.v1.WeftAgent.ListImages:input_type -> weft.v1.ListImagesRequest
-	41,  // 131: weft.v1.WeftAgent.CleanImages:input_type -> weft.v1.CleanImagesRequest
-	43,  // 132: weft.v1.WeftAgent.WaitVM:input_type -> weft.v1.WaitVMRequest
-	123, // 133: weft.v1.WeftAgent.RegisterMicroVM:input_type -> weft.v1.RegisterMicroVMRequest
-	46,  // 134: weft.v1.WeftAgent.VMTimings:input_type -> weft.v1.VMTimingsRequest
-	48,  // 135: weft.v1.WeftAgent.VMLogs:input_type -> weft.v1.VMLogsRequest
-	3,   // 136: weft.v1.WeftAgent.ListProjects:input_type -> weft.v1.ListProjectsRequest
-	5,   // 137: weft.v1.WeftAgent.CreateProject:input_type -> weft.v1.CreateProjectRequest
-	7,   // 138: weft.v1.WeftAgent.RenameProject:input_type -> weft.v1.RenameProjectRequest
-	9,   // 139: weft.v1.WeftAgent.DeleteProject:input_type -> weft.v1.DeleteProjectRequest
-	50,  // 140: weft.v1.WeftAgent.AddProjectMember:input_type -> weft.v1.AddProjectMemberRequest
-	52,  // 141: weft.v1.WeftAgent.RemoveProjectMember:input_type -> weft.v1.RemoveProjectMemberRequest
-	54,  // 142: weft.v1.WeftAgent.ListProjectMembers:input_type -> weft.v1.ListProjectMembersRequest
-	57,  // 143: weft.v1.WeftAgent.ListUsers:input_type -> weft.v1.ListUsersRequest
-	59,  // 144: weft.v1.WeftAgent.GetUser:input_type -> weft.v1.GetUserRequest
-	61,  // 145: weft.v1.WeftAgent.Me:input_type -> weft.v1.MeRequest
-	63,  // 146: weft.v1.WeftAgent.SetUserDisplayName:input_type -> weft.v1.SetUserDisplayNameRequest
-	65,  // 147: weft.v1.WeftAgent.DeleteUser:input_type -> weft.v1.DeleteUserRequest
-	68,  // 148: weft.v1.WeftAgent.ListNetworks:input_type -> weft.v1.ListNetworksRequest
-	70,  // 149: weft.v1.WeftAgent.CreateNetwork:input_type -> weft.v1.CreateNetworkRequest
-	72,  // 150: weft.v1.WeftAgent.RenameNetwork:input_type -> weft.v1.RenameNetworkRequest
-	74,  // 151: weft.v1.WeftAgent.SetNetworkDNS:input_type -> weft.v1.SetNetworkDNSRequest
-	76,  // 152: weft.v1.WeftAgent.DeleteNetwork:input_type -> weft.v1.DeleteNetworkRequest
-	78,  // 153: weft.v1.WeftAgent.SetNetworkDefaultSecurityGroups:input_type -> weft.v1.SetNetworkDefaultSecurityGroupsRequest
-	82,  // 154: weft.v1.WeftAgent.ListSecurityGroups:input_type -> weft.v1.ListSecurityGroupsRequest
-	84,  // 155: weft.v1.WeftAgent.CreateSecurityGroup:input_type -> weft.v1.CreateSecurityGroupRequest
-	86,  // 156: weft.v1.WeftAgent.RenameSecurityGroup:input_type -> weft.v1.RenameSecurityGroupRequest
-	88,  // 157: weft.v1.WeftAgent.SetSecurityGroupDescription:input_type -> weft.v1.SetSecurityGroupDescriptionRequest
-	90,  // 158: weft.v1.WeftAgent.SetSecurityGroupRules:input_type -> weft.v1.SetSecurityGroupRulesRequest
-	92,  // 159: weft.v1.WeftAgent.DeleteSecurityGroup:input_type -> weft.v1.DeleteSecurityGroupRequest
-	95,  // 160: weft.v1.WeftAgent.ListVolumes:input_type -> weft.v1.ListVolumesRequest
-	97,  // 161: weft.v1.WeftAgent.CreateVolume:input_type -> weft.v1.CreateVolumeRequest
-	99,  // 162: weft.v1.WeftAgent.RenameVolume:input_type -> weft.v1.RenameVolumeRequest
-	101, // 163: weft.v1.WeftAgent.ResizeVolume:input_type -> weft.v1.ResizeVolumeRequest
-	103, // 164: weft.v1.WeftAgent.AttachVolume:input_type -> weft.v1.AttachVolumeRequest
-	105, // 165: weft.v1.WeftAgent.DetachVolume:input_type -> weft.v1.DetachVolumeRequest
-	107, // 166: weft.v1.WeftAgent.DeleteVolume:input_type -> weft.v1.DeleteVolumeRequest
-	110, // 167: weft.v1.WeftAgent.CreateVolumeSnapshot:input_type -> weft.v1.CreateVolumeSnapshotRequest
-	112, // 168: weft.v1.WeftAgent.ListVolumeSnapshots:input_type -> weft.v1.ListVolumeSnapshotsRequest
-	114, // 169: weft.v1.WeftAgent.RestoreVolumeSnapshot:input_type -> weft.v1.RestoreVolumeSnapshotRequest
-	116, // 170: weft.v1.WeftAgent.DeleteVolumeSnapshot:input_type -> weft.v1.DeleteVolumeSnapshotRequest
-	119, // 171: weft.v1.WeftAgent.WatchEvents:input_type -> weft.v1.WatchEventsRequest
-	120, // 172: weft.v1.WeftAgent.RenderNATSAuthorization:input_type -> weft.v1.RenderNATSAuthorizationRequest
-	142, // 173: weft.v1.WeftAgent.RegisterHost:input_type -> weft.v1.RegisterHostRequest
-	144, // 174: weft.v1.WeftAgent.ListHosts:input_type -> weft.v1.ListHostsRequest
-	146, // 175: weft.v1.WeftAgent.GetHost:input_type -> weft.v1.GetHostRequest
-	148, // 176: weft.v1.WeftAgent.HeartbeatHost:input_type -> weft.v1.HeartbeatHostRequest
-	150, // 177: weft.v1.WeftAgent.SetHostState:input_type -> weft.v1.SetHostStateRequest
-	152, // 178: weft.v1.WeftAgent.SetHostLabels:input_type -> weft.v1.SetHostLabelsRequest
-	154, // 179: weft.v1.WeftAgent.SetHostCordoned:input_type -> weft.v1.SetHostCordonedRequest
-	156, // 180: weft.v1.WeftAgent.DeleteHost:input_type -> weft.v1.DeleteHostRequest
-	127, // 181: weft.v1.WeftAgent.PublishShareToProject:input_type -> weft.v1.PublishShareToProjectRequest
-	177, // 182: weft.v1.WeftAgent.ListTenants:input_type -> weft.v1.ListTenantsRequest
-	179, // 183: weft.v1.WeftAgent.CreateTenant:input_type -> weft.v1.CreateTenantRequest
-	181, // 184: weft.v1.WeftAgent.DeleteTenant:input_type -> weft.v1.DeleteTenantRequest
-	183, // 185: weft.v1.WeftAgent.AddTenantAdmin:input_type -> weft.v1.AddTenantAdminRequest
-	185, // 186: weft.v1.WeftAgent.RemoveTenantAdmin:input_type -> weft.v1.RemoveTenantAdminRequest
-	187, // 187: weft.v1.WeftAgent.AddTenantMember:input_type -> weft.v1.AddTenantMemberRequest
-	189, // 188: weft.v1.WeftAgent.RemoveTenantMember:input_type -> weft.v1.RemoveTenantMemberRequest
-	192, // 189: weft.v1.WeftAgent.GetTenantQuota:input_type -> weft.v1.GetTenantQuotaRequest
-	194, // 190: weft.v1.WeftAgent.SetTenantQuota:input_type -> weft.v1.SetTenantQuotaRequest
-	196, // 191: weft.v1.WeftAgent.GetProjectQuota:input_type -> weft.v1.GetProjectQuotaRequest
-	198, // 192: weft.v1.WeftAgent.SetProjectQuota:input_type -> weft.v1.SetProjectQuotaRequest
-	201, // 193: weft.v1.WeftAgent.ListShares:input_type -> weft.v1.ListSharesRequest
-	203, // 194: weft.v1.WeftAgent.CreateShare:input_type -> weft.v1.CreateShareRequest
-	205, // 195: weft.v1.WeftAgent.DeleteShare:input_type -> weft.v1.DeleteShareRequest
-	208, // 196: weft.v1.WeftAgent.ListFloatingIPs:input_type -> weft.v1.ListFloatingIPsRequest
-	210, // 197: weft.v1.WeftAgent.AllocateFloatingIP:input_type -> weft.v1.AllocateFloatingIPRequest
-	212, // 198: weft.v1.WeftAgent.ReleaseFloatingIP:input_type -> weft.v1.ReleaseFloatingIPRequest
-	214, // 199: weft.v1.WeftAgent.MapFloatingIP:input_type -> weft.v1.MapFloatingIPRequest
-	216, // 200: weft.v1.WeftAgent.UnmapFloatingIP:input_type -> weft.v1.UnmapFloatingIPRequest
-	219, // 201: weft.v1.WeftAgent.ListFlavors:input_type -> weft.v1.ListFlavorsRequest
-	221, // 202: weft.v1.WeftAgent.GetFlavor:input_type -> weft.v1.GetFlavorRequest
-	223, // 203: weft.v1.WeftAgent.SetFlavor:input_type -> weft.v1.SetFlavorRequest
-	225, // 204: weft.v1.WeftAgent.DeleteFlavor:input_type -> weft.v1.DeleteFlavorRequest
-	228, // 205: weft.v1.WeftAgent.ListScripts:input_type -> weft.v1.ListScriptsRequest
-	230, // 206: weft.v1.WeftAgent.GetScript:input_type -> weft.v1.GetScriptRequest
-	232, // 207: weft.v1.WeftAgent.SetScript:input_type -> weft.v1.SetScriptRequest
-	234, // 208: weft.v1.WeftAgent.DeleteScript:input_type -> weft.v1.DeleteScriptRequest
-	237, // 209: weft.v1.WeftAgent.ListVMProperties:input_type -> weft.v1.ListVMPropertiesRequest
-	239, // 210: weft.v1.WeftAgent.SetVMProperty:input_type -> weft.v1.SetVMPropertyRequest
-	241, // 211: weft.v1.WeftAgent.DeleteVMProperty:input_type -> weft.v1.DeleteVMPropertyRequest
-	244, // 212: weft.v1.WeftAgent.ListUEFIVars:input_type -> weft.v1.ListUEFIVarsRequest
-	246, // 213: weft.v1.WeftAgent.SetUEFIVar:input_type -> weft.v1.SetUEFIVarRequest
-	248, // 214: weft.v1.WeftAgent.DeleteUEFIVar:input_type -> weft.v1.DeleteUEFIVarRequest
-	251, // 215: weft.v1.WeftAgent.ListVMSSHKeys:input_type -> weft.v1.ListVMSSHKeysRequest
-	253, // 216: weft.v1.WeftAgent.AddVMSSHKey:input_type -> weft.v1.AddVMSSHKeyRequest
-	255, // 217: weft.v1.WeftAgent.RemoveVMSSHKey:input_type -> weft.v1.RemoveVMSSHKeyRequest
-	130, // 218: weft.v1.WeftAgent.ListFederationPeers:input_type -> weft.v1.ListFederationPeersRequest
-	135, // 219: weft.v1.WeftAgent.ListPluginCatalogue:input_type -> weft.v1.ListPluginCatalogueRequest
-	137, // 220: weft.v1.WeftAgent.ListInstalledPlugins:input_type -> weft.v1.ListInstalledPluginsRequest
-	139, // 221: weft.v1.WeftAgent.InstallPlugin:input_type -> weft.v1.InstallPluginRequest
-	158, // 222: weft.v1.AgentDispatch.Connect:input_type -> weft.v1.AgentMessage
-	12,  // 223: weft.v1.WeftAgent.ListVMs:output_type -> weft.v1.ListVMsResponse
-	18,  // 224: weft.v1.WeftAgent.VMStatus:output_type -> weft.v1.VMStatusResponse
-	14,  // 225: weft.v1.WeftAgent.StartVM:output_type -> weft.v1.StartVMResponse
-	16,  // 226: weft.v1.WeftAgent.StopVM:output_type -> weft.v1.StopVMResponse
-	22,  // 227: weft.v1.WeftAgent.CreateVM:output_type -> weft.v1.CreateVMResponse
-	24,  // 228: weft.v1.WeftAgent.DeleteVM:output_type -> weft.v1.DeleteVMResponse
-	29,  // 229: weft.v1.WeftAgent.ProvisionVM:output_type -> weft.v1.ProvisionVMResponse
-	31,  // 230: weft.v1.WeftAgent.DeprovisionVM:output_type -> weft.v1.DeprovisionVMResponse
-	33,  // 231: weft.v1.WeftAgent.PullImages:output_type -> weft.v1.PullImagesResponse
-	35,  // 232: weft.v1.WeftAgent.PullImage:output_type -> weft.v1.PullImageResponse
-	37,  // 233: weft.v1.WeftAgent.PatchImage:output_type -> weft.v1.PatchImageResponse
-	40,  // 234: weft.v1.WeftAgent.ListImages:output_type -> weft.v1.ListImagesResponse
-	42,  // 235: weft.v1.WeftAgent.CleanImages:output_type -> weft.v1.CleanImagesResponse
-	44,  // 236: weft.v1.WeftAgent.WaitVM:output_type -> weft.v1.WaitVMResponse
-	124, // 237: weft.v1.WeftAgent.RegisterMicroVM:output_type -> weft.v1.RegisterMicroVMResponse
-	47,  // 238: weft.v1.WeftAgent.VMTimings:output_type -> weft.v1.VMTimingsResponse
-	49,  // 239: weft.v1.WeftAgent.VMLogs:output_type -> weft.v1.VMLogsResponse
-	4,   // 240: weft.v1.WeftAgent.ListProjects:output_type -> weft.v1.ListProjectsResponse
-	6,   // 241: weft.v1.WeftAgent.CreateProject:output_type -> weft.v1.CreateProjectResponse
-	8,   // 242: weft.v1.WeftAgent.RenameProject:output_type -> weft.v1.RenameProjectResponse
-	10,  // 243: weft.v1.WeftAgent.DeleteProject:output_type -> weft.v1.DeleteProjectResponse
-	51,  // 244: weft.v1.WeftAgent.AddProjectMember:output_type -> weft.v1.AddProjectMemberResponse
-	53,  // 245: weft.v1.WeftAgent.RemoveProjectMember:output_type -> weft.v1.RemoveProjectMemberResponse
-	55,  // 246: weft.v1.WeftAgent.ListProjectMembers:output_type -> weft.v1.ListProjectMembersResponse
-	58,  // 247: weft.v1.WeftAgent.ListUsers:output_type -> weft.v1.ListUsersResponse
-	60,  // 248: weft.v1.WeftAgent.GetUser:output_type -> weft.v1.GetUserResponse
-	62,  // 249: weft.v1.WeftAgent.Me:output_type -> weft.v1.MeResponse
-	64,  // 250: weft.v1.WeftAgent.SetUserDisplayName:output_type -> weft.v1.SetUserDisplayNameResponse
-	66,  // 251: weft.v1.WeftAgent.DeleteUser:output_type -> weft.v1.DeleteUserResponse
-	69,  // 252: weft.v1.WeftAgent.ListNetworks:output_type -> weft.v1.ListNetworksResponse
-	71,  // 253: weft.v1.WeftAgent.CreateNetwork:output_type -> weft.v1.CreateNetworkResponse
-	73,  // 254: weft.v1.WeftAgent.RenameNetwork:output_type -> weft.v1.RenameNetworkResponse
-	75,  // 255: weft.v1.WeftAgent.SetNetworkDNS:output_type -> weft.v1.SetNetworkDNSResponse
-	77,  // 256: weft.v1.WeftAgent.DeleteNetwork:output_type -> weft.v1.DeleteNetworkResponse
-	79,  // 257: weft.v1.WeftAgent.SetNetworkDefaultSecurityGroups:output_type -> weft.v1.SetNetworkDefaultSecurityGroupsResponse
-	83,  // 258: weft.v1.WeftAgent.ListSecurityGroups:output_type -> weft.v1.ListSecurityGroupsResponse
-	85,  // 259: weft.v1.WeftAgent.CreateSecurityGroup:output_type -> weft.v1.CreateSecurityGroupResponse
-	87,  // 260: weft.v1.WeftAgent.RenameSecurityGroup:output_type -> weft.v1.RenameSecurityGroupResponse
-	89,  // 261: weft.v1.WeftAgent.SetSecurityGroupDescription:output_type -> weft.v1.SetSecurityGroupDescriptionResponse
-	91,  // 262: weft.v1.WeftAgent.SetSecurityGroupRules:output_type -> weft.v1.SetSecurityGroupRulesResponse
-	93,  // 263: weft.v1.WeftAgent.DeleteSecurityGroup:output_type -> weft.v1.DeleteSecurityGroupResponse
-	96,  // 264: weft.v1.WeftAgent.ListVolumes:output_type -> weft.v1.ListVolumesResponse
-	98,  // 265: weft.v1.WeftAgent.CreateVolume:output_type -> weft.v1.CreateVolumeResponse
-	100, // 266: weft.v1.WeftAgent.RenameVolume:output_type -> weft.v1.RenameVolumeResponse
-	102, // 267: weft.v1.WeftAgent.ResizeVolume:output_type -> weft.v1.ResizeVolumeResponse
-	104, // 268: weft.v1.WeftAgent.AttachVolume:output_type -> weft.v1.AttachVolumeResponse
-	106, // 269: weft.v1.WeftAgent.DetachVolume:output_type -> weft.v1.DetachVolumeResponse
-	108, // 270: weft.v1.WeftAgent.DeleteVolume:output_type -> weft.v1.DeleteVolumeResponse
-	111, // 271: weft.v1.WeftAgent.CreateVolumeSnapshot:output_type -> weft.v1.CreateVolumeSnapshotResponse
-	113, // 272: weft.v1.WeftAgent.ListVolumeSnapshots:output_type -> weft.v1.ListVolumeSnapshotsResponse
-	115, // 273: weft.v1.WeftAgent.RestoreVolumeSnapshot:output_type -> weft.v1.RestoreVolumeSnapshotResponse
-	117, // 274: weft.v1.WeftAgent.DeleteVolumeSnapshot:output_type -> weft.v1.DeleteVolumeSnapshotResponse
-	118, // 275: weft.v1.WeftAgent.WatchEvents:output_type -> weft.v1.PlatformEvent
-	121, // 276: weft.v1.WeftAgent.RenderNATSAuthorization:output_type -> weft.v1.RenderNATSAuthorizationResponse
-	143, // 277: weft.v1.WeftAgent.RegisterHost:output_type -> weft.v1.RegisterHostResponse
-	145, // 278: weft.v1.WeftAgent.ListHosts:output_type -> weft.v1.ListHostsResponse
-	147, // 279: weft.v1.WeftAgent.GetHost:output_type -> weft.v1.GetHostResponse
-	149, // 280: weft.v1.WeftAgent.HeartbeatHost:output_type -> weft.v1.HeartbeatHostResponse
-	151, // 281: weft.v1.WeftAgent.SetHostState:output_type -> weft.v1.SetHostStateResponse
-	153, // 282: weft.v1.WeftAgent.SetHostLabels:output_type -> weft.v1.SetHostLabelsResponse
-	155, // 283: weft.v1.WeftAgent.SetHostCordoned:output_type -> weft.v1.SetHostCordonedResponse
-	157, // 284: weft.v1.WeftAgent.DeleteHost:output_type -> weft.v1.DeleteHostResponse
-	128, // 285: weft.v1.WeftAgent.PublishShareToProject:output_type -> weft.v1.PublishShareToProjectResponse
-	178, // 286: weft.v1.WeftAgent.ListTenants:output_type -> weft.v1.ListTenantsResponse
-	180, // 287: weft.v1.WeftAgent.CreateTenant:output_type -> weft.v1.CreateTenantResponse
-	182, // 288: weft.v1.WeftAgent.DeleteTenant:output_type -> weft.v1.DeleteTenantResponse
-	184, // 289: weft.v1.WeftAgent.AddTenantAdmin:output_type -> weft.v1.AddTenantAdminResponse
-	186, // 290: weft.v1.WeftAgent.RemoveTenantAdmin:output_type -> weft.v1.RemoveTenantAdminResponse
-	188, // 291: weft.v1.WeftAgent.AddTenantMember:output_type -> weft.v1.AddTenantMemberResponse
-	190, // 292: weft.v1.WeftAgent.RemoveTenantMember:output_type -> weft.v1.RemoveTenantMemberResponse
-	193, // 293: weft.v1.WeftAgent.GetTenantQuota:output_type -> weft.v1.GetTenantQuotaResponse
-	195, // 294: weft.v1.WeftAgent.SetTenantQuota:output_type -> weft.v1.SetTenantQuotaResponse
-	197, // 295: weft.v1.WeftAgent.GetProjectQuota:output_type -> weft.v1.GetProjectQuotaResponse
-	199, // 296: weft.v1.WeftAgent.SetProjectQuota:output_type -> weft.v1.SetProjectQuotaResponse
-	202, // 297: weft.v1.WeftAgent.ListShares:output_type -> weft.v1.ListSharesResponse
-	204, // 298: weft.v1.WeftAgent.CreateShare:output_type -> weft.v1.CreateShareResponse
-	206, // 299: weft.v1.WeftAgent.DeleteShare:output_type -> weft.v1.DeleteShareResponse
-	209, // 300: weft.v1.WeftAgent.ListFloatingIPs:output_type -> weft.v1.ListFloatingIPsResponse
-	211, // 301: weft.v1.WeftAgent.AllocateFloatingIP:output_type -> weft.v1.AllocateFloatingIPResponse
-	213, // 302: weft.v1.WeftAgent.ReleaseFloatingIP:output_type -> weft.v1.ReleaseFloatingIPResponse
-	215, // 303: weft.v1.WeftAgent.MapFloatingIP:output_type -> weft.v1.MapFloatingIPResponse
-	217, // 304: weft.v1.WeftAgent.UnmapFloatingIP:output_type -> weft.v1.UnmapFloatingIPResponse
-	220, // 305: weft.v1.WeftAgent.ListFlavors:output_type -> weft.v1.ListFlavorsResponse
-	222, // 306: weft.v1.WeftAgent.GetFlavor:output_type -> weft.v1.GetFlavorResponse
-	224, // 307: weft.v1.WeftAgent.SetFlavor:output_type -> weft.v1.SetFlavorResponse
-	226, // 308: weft.v1.WeftAgent.DeleteFlavor:output_type -> weft.v1.DeleteFlavorResponse
-	229, // 309: weft.v1.WeftAgent.ListScripts:output_type -> weft.v1.ListScriptsResponse
-	231, // 310: weft.v1.WeftAgent.GetScript:output_type -> weft.v1.GetScriptResponse
-	233, // 311: weft.v1.WeftAgent.SetScript:output_type -> weft.v1.SetScriptResponse
-	235, // 312: weft.v1.WeftAgent.DeleteScript:output_type -> weft.v1.DeleteScriptResponse
-	238, // 313: weft.v1.WeftAgent.ListVMProperties:output_type -> weft.v1.ListVMPropertiesResponse
-	240, // 314: weft.v1.WeftAgent.SetVMProperty:output_type -> weft.v1.SetVMPropertyResponse
-	242, // 315: weft.v1.WeftAgent.DeleteVMProperty:output_type -> weft.v1.DeleteVMPropertyResponse
-	245, // 316: weft.v1.WeftAgent.ListUEFIVars:output_type -> weft.v1.ListUEFIVarsResponse
-	247, // 317: weft.v1.WeftAgent.SetUEFIVar:output_type -> weft.v1.SetUEFIVarResponse
-	249, // 318: weft.v1.WeftAgent.DeleteUEFIVar:output_type -> weft.v1.DeleteUEFIVarResponse
-	252, // 319: weft.v1.WeftAgent.ListVMSSHKeys:output_type -> weft.v1.ListVMSSHKeysResponse
-	254, // 320: weft.v1.WeftAgent.AddVMSSHKey:output_type -> weft.v1.AddVMSSHKeyResponse
-	256, // 321: weft.v1.WeftAgent.RemoveVMSSHKey:output_type -> weft.v1.RemoveVMSSHKeyResponse
-	131, // 322: weft.v1.WeftAgent.ListFederationPeers:output_type -> weft.v1.ListFederationPeersResponse
-	136, // 323: weft.v1.WeftAgent.ListPluginCatalogue:output_type -> weft.v1.ListPluginCatalogueResponse
-	138, // 324: weft.v1.WeftAgent.ListInstalledPlugins:output_type -> weft.v1.ListInstalledPluginsResponse
-	140, // 325: weft.v1.WeftAgent.InstallPlugin:output_type -> weft.v1.InstallPluginResponse
-	159, // 326: weft.v1.AgentDispatch.Connect:output_type -> weft.v1.ControlMessage
-	223, // [223:327] is the sub-list for method output_type
-	119, // [119:223] is the sub-list for method input_type
-	119, // [119:119] is the sub-list for extension type_name
-	119, // [119:119] is the sub-list for extension extendee
-	0,   // [0:119] is the sub-list for field type_name
+	120, // 45: weft.v1.CreateVolumeBackupResponse.backup:type_name -> weft.v1.VolumeBackupInfo
+	120, // 46: weft.v1.ListVolumeBackupsResponse.backups:type_name -> weft.v1.VolumeBackupInfo
+	94,  // 47: weft.v1.RestoreVolumeBackupResponse.volume:type_name -> weft.v1.VolumeInfo
+	269, // 48: weft.v1.PlatformEvent.meta:type_name -> weft.v1.PlatformEvent.MetaEntry
+	133, // 49: weft.v1.RegisterMicroVMRequest.shares:type_name -> weft.v1.MicroVMShare
+	19,  // 50: weft.v1.RegisterMicroVMRequest.requested_gpus:type_name -> weft.v1.GPURequest
+	20,  // 51: weft.v1.RegisterMicroVMRequest.requested_pci:type_name -> weft.v1.PCIPassthroughRequest
+	136, // 52: weft.v1.ShareMount.cubefs:type_name -> weft.v1.CubeFSMount
+	137, // 53: weft.v1.PublishShareToProjectRequest.mount:type_name -> weft.v1.ShareMount
+	140, // 54: weft.v1.ListFederationPeersResponse.peers:type_name -> weft.v1.FederationPeerInfo
+	143, // 55: weft.v1.PluginCatalogueEntry.inputs:type_name -> weft.v1.PluginInput
+	144, // 56: weft.v1.ListPluginCatalogueResponse.entries:type_name -> weft.v1.PluginCatalogueEntry
+	145, // 57: weft.v1.ListInstalledPluginsResponse.instances:type_name -> weft.v1.PluginInstance
+	270, // 58: weft.v1.InstallPluginRequest.inputs:type_name -> weft.v1.InstallPluginRequest.InputsEntry
+	271, // 59: weft.v1.HostInfo.labels:type_name -> weft.v1.HostInfo.LabelsEntry
+	272, // 60: weft.v1.RegisterHostRequest.labels:type_name -> weft.v1.RegisterHostRequest.LabelsEntry
+	152, // 61: weft.v1.RegisterHostResponse.host:type_name -> weft.v1.HostInfo
+	152, // 62: weft.v1.ListHostsResponse.hosts:type_name -> weft.v1.HostInfo
+	152, // 63: weft.v1.GetHostResponse.host:type_name -> weft.v1.HostInfo
+	273, // 64: weft.v1.SetHostLabelsRequest.labels:type_name -> weft.v1.SetHostLabelsRequest.LabelsEntry
+	171, // 65: weft.v1.AgentMessage.hello:type_name -> weft.v1.AgentHello
+	174, // 66: weft.v1.AgentMessage.pong:type_name -> weft.v1.AgentPong
+	176, // 67: weft.v1.AgentMessage.reply:type_name -> weft.v1.DriverReply
+	172, // 68: weft.v1.ControlMessage.hello_ack:type_name -> weft.v1.ControlHelloAck
+	173, // 69: weft.v1.ControlMessage.ping:type_name -> weft.v1.ControlPing
+	175, // 70: weft.v1.ControlMessage.request:type_name -> weft.v1.DriverRequest
+	177, // 71: weft.v1.DriverRequest.create_vm:type_name -> weft.v1.CreateVMOp
+	179, // 72: weft.v1.DriverRequest.register_micro_vm:type_name -> weft.v1.RegisterMicroVMOp
+	181, // 73: weft.v1.DriverRequest.start_vm:type_name -> weft.v1.StartVMOp
+	183, // 74: weft.v1.DriverRequest.stop_vm:type_name -> weft.v1.StopVMOp
+	185, // 75: weft.v1.DriverRequest.delete_vm:type_name -> weft.v1.DeleteVMOp
+	178, // 76: weft.v1.DriverReply.create_vm:type_name -> weft.v1.CreateVMResult
+	180, // 77: weft.v1.DriverReply.register_micro_vm:type_name -> weft.v1.RegisterMicroVMResult
+	182, // 78: weft.v1.DriverReply.start_vm:type_name -> weft.v1.StartVMResult
+	184, // 79: weft.v1.DriverReply.stop_vm:type_name -> weft.v1.StopVMResult
+	186, // 80: weft.v1.DriverReply.delete_vm:type_name -> weft.v1.DeleteVMResult
+	133, // 81: weft.v1.RegisterMicroVMOp.shares:type_name -> weft.v1.MicroVMShare
+	187, // 82: weft.v1.ListTenantsResponse.tenants:type_name -> weft.v1.TenantInfo
+	187, // 83: weft.v1.CreateTenantResponse.tenant:type_name -> weft.v1.TenantInfo
+	187, // 84: weft.v1.AddTenantAdminResponse.tenant:type_name -> weft.v1.TenantInfo
+	187, // 85: weft.v1.RemoveTenantAdminResponse.tenant:type_name -> weft.v1.TenantInfo
+	187, // 86: weft.v1.AddTenantMemberResponse.tenant:type_name -> weft.v1.TenantInfo
+	187, // 87: weft.v1.RemoveTenantMemberResponse.tenant:type_name -> weft.v1.TenantInfo
+	202, // 88: weft.v1.GetTenantQuotaResponse.cap:type_name -> weft.v1.Quotas
+	202, // 89: weft.v1.GetTenantQuotaResponse.allocated:type_name -> weft.v1.Quotas
+	202, // 90: weft.v1.SetTenantQuotaRequest.cap:type_name -> weft.v1.Quotas
+	202, // 91: weft.v1.SetTenantQuotaResponse.cap:type_name -> weft.v1.Quotas
+	202, // 92: weft.v1.SetTenantQuotaResponse.allocated:type_name -> weft.v1.Quotas
+	202, // 93: weft.v1.GetProjectQuotaResponse.project:type_name -> weft.v1.Quotas
+	202, // 94: weft.v1.GetProjectQuotaResponse.tenant_cap:type_name -> weft.v1.Quotas
+	202, // 95: weft.v1.GetProjectQuotaResponse.siblings_total:type_name -> weft.v1.Quotas
+	202, // 96: weft.v1.SetProjectQuotaRequest.quota:type_name -> weft.v1.Quotas
+	202, // 97: weft.v1.SetProjectQuotaResponse.project:type_name -> weft.v1.Quotas
+	202, // 98: weft.v1.SetProjectQuotaResponse.tenant_cap:type_name -> weft.v1.Quotas
+	202, // 99: weft.v1.SetProjectQuotaResponse.siblings_total:type_name -> weft.v1.Quotas
+	211, // 100: weft.v1.ListSharesResponse.shares:type_name -> weft.v1.ShareInfo
+	211, // 101: weft.v1.CreateShareResponse.share:type_name -> weft.v1.ShareInfo
+	218, // 102: weft.v1.ListFloatingIPsResponse.floating_ips:type_name -> weft.v1.FloatingIPInfo
+	218, // 103: weft.v1.AllocateFloatingIPResponse.floating_ip:type_name -> weft.v1.FloatingIPInfo
+	218, // 104: weft.v1.MapFloatingIPResponse.floating_ip:type_name -> weft.v1.FloatingIPInfo
+	218, // 105: weft.v1.UnmapFloatingIPResponse.floating_ip:type_name -> weft.v1.FloatingIPInfo
+	229, // 106: weft.v1.ListFlavorsResponse.flavors:type_name -> weft.v1.Flavor
+	229, // 107: weft.v1.GetFlavorResponse.flavor:type_name -> weft.v1.Flavor
+	229, // 108: weft.v1.SetFlavorRequest.flavor:type_name -> weft.v1.Flavor
+	229, // 109: weft.v1.SetFlavorResponse.flavor:type_name -> weft.v1.Flavor
+	238, // 110: weft.v1.ListScriptsResponse.scripts:type_name -> weft.v1.Script
+	238, // 111: weft.v1.GetScriptResponse.script:type_name -> weft.v1.Script
+	238, // 112: weft.v1.SetScriptRequest.script:type_name -> weft.v1.Script
+	238, // 113: weft.v1.SetScriptResponse.script:type_name -> weft.v1.Script
+	247, // 114: weft.v1.ListVMPropertiesResponse.properties:type_name -> weft.v1.VMProperty
+	247, // 115: weft.v1.SetVMPropertyRequest.property:type_name -> weft.v1.VMProperty
+	247, // 116: weft.v1.SetVMPropertyResponse.property:type_name -> weft.v1.VMProperty
+	254, // 117: weft.v1.ListUEFIVarsResponse.vars:type_name -> weft.v1.UEFIVar
+	254, // 118: weft.v1.SetUEFIVarRequest.var:type_name -> weft.v1.UEFIVar
+	254, // 119: weft.v1.SetUEFIVarResponse.var:type_name -> weft.v1.UEFIVar
+	261, // 120: weft.v1.ListVMSSHKeysResponse.keys:type_name -> weft.v1.VMSSHKey
+	261, // 121: weft.v1.AddVMSSHKeyResponse.key:type_name -> weft.v1.VMSSHKey
+	11,  // 122: weft.v1.WeftAgent.ListVMs:input_type -> weft.v1.ListVMsRequest
+	17,  // 123: weft.v1.WeftAgent.VMStatus:input_type -> weft.v1.VMStatusRequest
+	13,  // 124: weft.v1.WeftAgent.StartVM:input_type -> weft.v1.StartVMRequest
+	15,  // 125: weft.v1.WeftAgent.StopVM:input_type -> weft.v1.StopVMRequest
+	21,  // 126: weft.v1.WeftAgent.CreateVM:input_type -> weft.v1.CreateVMRequest
+	23,  // 127: weft.v1.WeftAgent.DeleteVM:input_type -> weft.v1.DeleteVMRequest
+	28,  // 128: weft.v1.WeftAgent.ProvisionVM:input_type -> weft.v1.ProvisionVMRequest
+	30,  // 129: weft.v1.WeftAgent.DeprovisionVM:input_type -> weft.v1.DeprovisionVMRequest
+	32,  // 130: weft.v1.WeftAgent.PullImages:input_type -> weft.v1.PullImagesRequest
+	34,  // 131: weft.v1.WeftAgent.PullImage:input_type -> weft.v1.PullImageRequest
+	36,  // 132: weft.v1.WeftAgent.PatchImage:input_type -> weft.v1.PatchImageRequest
+	38,  // 133: weft.v1.WeftAgent.ListImages:input_type -> weft.v1.ListImagesRequest
+	41,  // 134: weft.v1.WeftAgent.CleanImages:input_type -> weft.v1.CleanImagesRequest
+	43,  // 135: weft.v1.WeftAgent.WaitVM:input_type -> weft.v1.WaitVMRequest
+	134, // 136: weft.v1.WeftAgent.RegisterMicroVM:input_type -> weft.v1.RegisterMicroVMRequest
+	46,  // 137: weft.v1.WeftAgent.VMTimings:input_type -> weft.v1.VMTimingsRequest
+	48,  // 138: weft.v1.WeftAgent.VMLogs:input_type -> weft.v1.VMLogsRequest
+	3,   // 139: weft.v1.WeftAgent.ListProjects:input_type -> weft.v1.ListProjectsRequest
+	5,   // 140: weft.v1.WeftAgent.CreateProject:input_type -> weft.v1.CreateProjectRequest
+	7,   // 141: weft.v1.WeftAgent.RenameProject:input_type -> weft.v1.RenameProjectRequest
+	9,   // 142: weft.v1.WeftAgent.DeleteProject:input_type -> weft.v1.DeleteProjectRequest
+	50,  // 143: weft.v1.WeftAgent.AddProjectMember:input_type -> weft.v1.AddProjectMemberRequest
+	52,  // 144: weft.v1.WeftAgent.RemoveProjectMember:input_type -> weft.v1.RemoveProjectMemberRequest
+	54,  // 145: weft.v1.WeftAgent.ListProjectMembers:input_type -> weft.v1.ListProjectMembersRequest
+	57,  // 146: weft.v1.WeftAgent.ListUsers:input_type -> weft.v1.ListUsersRequest
+	59,  // 147: weft.v1.WeftAgent.GetUser:input_type -> weft.v1.GetUserRequest
+	61,  // 148: weft.v1.WeftAgent.Me:input_type -> weft.v1.MeRequest
+	63,  // 149: weft.v1.WeftAgent.SetUserDisplayName:input_type -> weft.v1.SetUserDisplayNameRequest
+	65,  // 150: weft.v1.WeftAgent.DeleteUser:input_type -> weft.v1.DeleteUserRequest
+	68,  // 151: weft.v1.WeftAgent.ListNetworks:input_type -> weft.v1.ListNetworksRequest
+	70,  // 152: weft.v1.WeftAgent.CreateNetwork:input_type -> weft.v1.CreateNetworkRequest
+	72,  // 153: weft.v1.WeftAgent.RenameNetwork:input_type -> weft.v1.RenameNetworkRequest
+	74,  // 154: weft.v1.WeftAgent.SetNetworkDNS:input_type -> weft.v1.SetNetworkDNSRequest
+	76,  // 155: weft.v1.WeftAgent.DeleteNetwork:input_type -> weft.v1.DeleteNetworkRequest
+	78,  // 156: weft.v1.WeftAgent.SetNetworkDefaultSecurityGroups:input_type -> weft.v1.SetNetworkDefaultSecurityGroupsRequest
+	82,  // 157: weft.v1.WeftAgent.ListSecurityGroups:input_type -> weft.v1.ListSecurityGroupsRequest
+	84,  // 158: weft.v1.WeftAgent.CreateSecurityGroup:input_type -> weft.v1.CreateSecurityGroupRequest
+	86,  // 159: weft.v1.WeftAgent.RenameSecurityGroup:input_type -> weft.v1.RenameSecurityGroupRequest
+	88,  // 160: weft.v1.WeftAgent.SetSecurityGroupDescription:input_type -> weft.v1.SetSecurityGroupDescriptionRequest
+	90,  // 161: weft.v1.WeftAgent.SetSecurityGroupRules:input_type -> weft.v1.SetSecurityGroupRulesRequest
+	92,  // 162: weft.v1.WeftAgent.DeleteSecurityGroup:input_type -> weft.v1.DeleteSecurityGroupRequest
+	95,  // 163: weft.v1.WeftAgent.ListVolumes:input_type -> weft.v1.ListVolumesRequest
+	97,  // 164: weft.v1.WeftAgent.CreateVolume:input_type -> weft.v1.CreateVolumeRequest
+	99,  // 165: weft.v1.WeftAgent.RenameVolume:input_type -> weft.v1.RenameVolumeRequest
+	101, // 166: weft.v1.WeftAgent.ResizeVolume:input_type -> weft.v1.ResizeVolumeRequest
+	103, // 167: weft.v1.WeftAgent.AttachVolume:input_type -> weft.v1.AttachVolumeRequest
+	105, // 168: weft.v1.WeftAgent.DetachVolume:input_type -> weft.v1.DetachVolumeRequest
+	107, // 169: weft.v1.WeftAgent.DeleteVolume:input_type -> weft.v1.DeleteVolumeRequest
+	110, // 170: weft.v1.WeftAgent.CreateVolumeSnapshot:input_type -> weft.v1.CreateVolumeSnapshotRequest
+	112, // 171: weft.v1.WeftAgent.ListVolumeSnapshots:input_type -> weft.v1.ListVolumeSnapshotsRequest
+	114, // 172: weft.v1.WeftAgent.RestoreVolumeSnapshot:input_type -> weft.v1.RestoreVolumeSnapshotRequest
+	118, // 173: weft.v1.WeftAgent.RevertVolumeSnapshot:input_type -> weft.v1.RevertVolumeSnapshotRequest
+	116, // 174: weft.v1.WeftAgent.DeleteVolumeSnapshot:input_type -> weft.v1.DeleteVolumeSnapshotRequest
+	121, // 175: weft.v1.WeftAgent.CreateVolumeBackup:input_type -> weft.v1.CreateVolumeBackupRequest
+	123, // 176: weft.v1.WeftAgent.ListVolumeBackups:input_type -> weft.v1.ListVolumeBackupsRequest
+	125, // 177: weft.v1.WeftAgent.DeleteVolumeBackup:input_type -> weft.v1.DeleteVolumeBackupRequest
+	127, // 178: weft.v1.WeftAgent.RestoreVolumeBackup:input_type -> weft.v1.RestoreVolumeBackupRequest
+	130, // 179: weft.v1.WeftAgent.WatchEvents:input_type -> weft.v1.WatchEventsRequest
+	131, // 180: weft.v1.WeftAgent.RenderNATSAuthorization:input_type -> weft.v1.RenderNATSAuthorizationRequest
+	153, // 181: weft.v1.WeftAgent.RegisterHost:input_type -> weft.v1.RegisterHostRequest
+	155, // 182: weft.v1.WeftAgent.ListHosts:input_type -> weft.v1.ListHostsRequest
+	157, // 183: weft.v1.WeftAgent.GetHost:input_type -> weft.v1.GetHostRequest
+	159, // 184: weft.v1.WeftAgent.HeartbeatHost:input_type -> weft.v1.HeartbeatHostRequest
+	161, // 185: weft.v1.WeftAgent.SetHostState:input_type -> weft.v1.SetHostStateRequest
+	163, // 186: weft.v1.WeftAgent.SetHostLabels:input_type -> weft.v1.SetHostLabelsRequest
+	165, // 187: weft.v1.WeftAgent.SetHostCordoned:input_type -> weft.v1.SetHostCordonedRequest
+	167, // 188: weft.v1.WeftAgent.DeleteHost:input_type -> weft.v1.DeleteHostRequest
+	138, // 189: weft.v1.WeftAgent.PublishShareToProject:input_type -> weft.v1.PublishShareToProjectRequest
+	188, // 190: weft.v1.WeftAgent.ListTenants:input_type -> weft.v1.ListTenantsRequest
+	190, // 191: weft.v1.WeftAgent.CreateTenant:input_type -> weft.v1.CreateTenantRequest
+	192, // 192: weft.v1.WeftAgent.DeleteTenant:input_type -> weft.v1.DeleteTenantRequest
+	194, // 193: weft.v1.WeftAgent.AddTenantAdmin:input_type -> weft.v1.AddTenantAdminRequest
+	196, // 194: weft.v1.WeftAgent.RemoveTenantAdmin:input_type -> weft.v1.RemoveTenantAdminRequest
+	198, // 195: weft.v1.WeftAgent.AddTenantMember:input_type -> weft.v1.AddTenantMemberRequest
+	200, // 196: weft.v1.WeftAgent.RemoveTenantMember:input_type -> weft.v1.RemoveTenantMemberRequest
+	203, // 197: weft.v1.WeftAgent.GetTenantQuota:input_type -> weft.v1.GetTenantQuotaRequest
+	205, // 198: weft.v1.WeftAgent.SetTenantQuota:input_type -> weft.v1.SetTenantQuotaRequest
+	207, // 199: weft.v1.WeftAgent.GetProjectQuota:input_type -> weft.v1.GetProjectQuotaRequest
+	209, // 200: weft.v1.WeftAgent.SetProjectQuota:input_type -> weft.v1.SetProjectQuotaRequest
+	212, // 201: weft.v1.WeftAgent.ListShares:input_type -> weft.v1.ListSharesRequest
+	214, // 202: weft.v1.WeftAgent.CreateShare:input_type -> weft.v1.CreateShareRequest
+	216, // 203: weft.v1.WeftAgent.DeleteShare:input_type -> weft.v1.DeleteShareRequest
+	219, // 204: weft.v1.WeftAgent.ListFloatingIPs:input_type -> weft.v1.ListFloatingIPsRequest
+	221, // 205: weft.v1.WeftAgent.AllocateFloatingIP:input_type -> weft.v1.AllocateFloatingIPRequest
+	223, // 206: weft.v1.WeftAgent.ReleaseFloatingIP:input_type -> weft.v1.ReleaseFloatingIPRequest
+	225, // 207: weft.v1.WeftAgent.MapFloatingIP:input_type -> weft.v1.MapFloatingIPRequest
+	227, // 208: weft.v1.WeftAgent.UnmapFloatingIP:input_type -> weft.v1.UnmapFloatingIPRequest
+	230, // 209: weft.v1.WeftAgent.ListFlavors:input_type -> weft.v1.ListFlavorsRequest
+	232, // 210: weft.v1.WeftAgent.GetFlavor:input_type -> weft.v1.GetFlavorRequest
+	234, // 211: weft.v1.WeftAgent.SetFlavor:input_type -> weft.v1.SetFlavorRequest
+	236, // 212: weft.v1.WeftAgent.DeleteFlavor:input_type -> weft.v1.DeleteFlavorRequest
+	239, // 213: weft.v1.WeftAgent.ListScripts:input_type -> weft.v1.ListScriptsRequest
+	241, // 214: weft.v1.WeftAgent.GetScript:input_type -> weft.v1.GetScriptRequest
+	243, // 215: weft.v1.WeftAgent.SetScript:input_type -> weft.v1.SetScriptRequest
+	245, // 216: weft.v1.WeftAgent.DeleteScript:input_type -> weft.v1.DeleteScriptRequest
+	248, // 217: weft.v1.WeftAgent.ListVMProperties:input_type -> weft.v1.ListVMPropertiesRequest
+	250, // 218: weft.v1.WeftAgent.SetVMProperty:input_type -> weft.v1.SetVMPropertyRequest
+	252, // 219: weft.v1.WeftAgent.DeleteVMProperty:input_type -> weft.v1.DeleteVMPropertyRequest
+	255, // 220: weft.v1.WeftAgent.ListUEFIVars:input_type -> weft.v1.ListUEFIVarsRequest
+	257, // 221: weft.v1.WeftAgent.SetUEFIVar:input_type -> weft.v1.SetUEFIVarRequest
+	259, // 222: weft.v1.WeftAgent.DeleteUEFIVar:input_type -> weft.v1.DeleteUEFIVarRequest
+	262, // 223: weft.v1.WeftAgent.ListVMSSHKeys:input_type -> weft.v1.ListVMSSHKeysRequest
+	264, // 224: weft.v1.WeftAgent.AddVMSSHKey:input_type -> weft.v1.AddVMSSHKeyRequest
+	266, // 225: weft.v1.WeftAgent.RemoveVMSSHKey:input_type -> weft.v1.RemoveVMSSHKeyRequest
+	141, // 226: weft.v1.WeftAgent.ListFederationPeers:input_type -> weft.v1.ListFederationPeersRequest
+	146, // 227: weft.v1.WeftAgent.ListPluginCatalogue:input_type -> weft.v1.ListPluginCatalogueRequest
+	148, // 228: weft.v1.WeftAgent.ListInstalledPlugins:input_type -> weft.v1.ListInstalledPluginsRequest
+	150, // 229: weft.v1.WeftAgent.InstallPlugin:input_type -> weft.v1.InstallPluginRequest
+	169, // 230: weft.v1.AgentDispatch.Connect:input_type -> weft.v1.AgentMessage
+	12,  // 231: weft.v1.WeftAgent.ListVMs:output_type -> weft.v1.ListVMsResponse
+	18,  // 232: weft.v1.WeftAgent.VMStatus:output_type -> weft.v1.VMStatusResponse
+	14,  // 233: weft.v1.WeftAgent.StartVM:output_type -> weft.v1.StartVMResponse
+	16,  // 234: weft.v1.WeftAgent.StopVM:output_type -> weft.v1.StopVMResponse
+	22,  // 235: weft.v1.WeftAgent.CreateVM:output_type -> weft.v1.CreateVMResponse
+	24,  // 236: weft.v1.WeftAgent.DeleteVM:output_type -> weft.v1.DeleteVMResponse
+	29,  // 237: weft.v1.WeftAgent.ProvisionVM:output_type -> weft.v1.ProvisionVMResponse
+	31,  // 238: weft.v1.WeftAgent.DeprovisionVM:output_type -> weft.v1.DeprovisionVMResponse
+	33,  // 239: weft.v1.WeftAgent.PullImages:output_type -> weft.v1.PullImagesResponse
+	35,  // 240: weft.v1.WeftAgent.PullImage:output_type -> weft.v1.PullImageResponse
+	37,  // 241: weft.v1.WeftAgent.PatchImage:output_type -> weft.v1.PatchImageResponse
+	40,  // 242: weft.v1.WeftAgent.ListImages:output_type -> weft.v1.ListImagesResponse
+	42,  // 243: weft.v1.WeftAgent.CleanImages:output_type -> weft.v1.CleanImagesResponse
+	44,  // 244: weft.v1.WeftAgent.WaitVM:output_type -> weft.v1.WaitVMResponse
+	135, // 245: weft.v1.WeftAgent.RegisterMicroVM:output_type -> weft.v1.RegisterMicroVMResponse
+	47,  // 246: weft.v1.WeftAgent.VMTimings:output_type -> weft.v1.VMTimingsResponse
+	49,  // 247: weft.v1.WeftAgent.VMLogs:output_type -> weft.v1.VMLogsResponse
+	4,   // 248: weft.v1.WeftAgent.ListProjects:output_type -> weft.v1.ListProjectsResponse
+	6,   // 249: weft.v1.WeftAgent.CreateProject:output_type -> weft.v1.CreateProjectResponse
+	8,   // 250: weft.v1.WeftAgent.RenameProject:output_type -> weft.v1.RenameProjectResponse
+	10,  // 251: weft.v1.WeftAgent.DeleteProject:output_type -> weft.v1.DeleteProjectResponse
+	51,  // 252: weft.v1.WeftAgent.AddProjectMember:output_type -> weft.v1.AddProjectMemberResponse
+	53,  // 253: weft.v1.WeftAgent.RemoveProjectMember:output_type -> weft.v1.RemoveProjectMemberResponse
+	55,  // 254: weft.v1.WeftAgent.ListProjectMembers:output_type -> weft.v1.ListProjectMembersResponse
+	58,  // 255: weft.v1.WeftAgent.ListUsers:output_type -> weft.v1.ListUsersResponse
+	60,  // 256: weft.v1.WeftAgent.GetUser:output_type -> weft.v1.GetUserResponse
+	62,  // 257: weft.v1.WeftAgent.Me:output_type -> weft.v1.MeResponse
+	64,  // 258: weft.v1.WeftAgent.SetUserDisplayName:output_type -> weft.v1.SetUserDisplayNameResponse
+	66,  // 259: weft.v1.WeftAgent.DeleteUser:output_type -> weft.v1.DeleteUserResponse
+	69,  // 260: weft.v1.WeftAgent.ListNetworks:output_type -> weft.v1.ListNetworksResponse
+	71,  // 261: weft.v1.WeftAgent.CreateNetwork:output_type -> weft.v1.CreateNetworkResponse
+	73,  // 262: weft.v1.WeftAgent.RenameNetwork:output_type -> weft.v1.RenameNetworkResponse
+	75,  // 263: weft.v1.WeftAgent.SetNetworkDNS:output_type -> weft.v1.SetNetworkDNSResponse
+	77,  // 264: weft.v1.WeftAgent.DeleteNetwork:output_type -> weft.v1.DeleteNetworkResponse
+	79,  // 265: weft.v1.WeftAgent.SetNetworkDefaultSecurityGroups:output_type -> weft.v1.SetNetworkDefaultSecurityGroupsResponse
+	83,  // 266: weft.v1.WeftAgent.ListSecurityGroups:output_type -> weft.v1.ListSecurityGroupsResponse
+	85,  // 267: weft.v1.WeftAgent.CreateSecurityGroup:output_type -> weft.v1.CreateSecurityGroupResponse
+	87,  // 268: weft.v1.WeftAgent.RenameSecurityGroup:output_type -> weft.v1.RenameSecurityGroupResponse
+	89,  // 269: weft.v1.WeftAgent.SetSecurityGroupDescription:output_type -> weft.v1.SetSecurityGroupDescriptionResponse
+	91,  // 270: weft.v1.WeftAgent.SetSecurityGroupRules:output_type -> weft.v1.SetSecurityGroupRulesResponse
+	93,  // 271: weft.v1.WeftAgent.DeleteSecurityGroup:output_type -> weft.v1.DeleteSecurityGroupResponse
+	96,  // 272: weft.v1.WeftAgent.ListVolumes:output_type -> weft.v1.ListVolumesResponse
+	98,  // 273: weft.v1.WeftAgent.CreateVolume:output_type -> weft.v1.CreateVolumeResponse
+	100, // 274: weft.v1.WeftAgent.RenameVolume:output_type -> weft.v1.RenameVolumeResponse
+	102, // 275: weft.v1.WeftAgent.ResizeVolume:output_type -> weft.v1.ResizeVolumeResponse
+	104, // 276: weft.v1.WeftAgent.AttachVolume:output_type -> weft.v1.AttachVolumeResponse
+	106, // 277: weft.v1.WeftAgent.DetachVolume:output_type -> weft.v1.DetachVolumeResponse
+	108, // 278: weft.v1.WeftAgent.DeleteVolume:output_type -> weft.v1.DeleteVolumeResponse
+	111, // 279: weft.v1.WeftAgent.CreateVolumeSnapshot:output_type -> weft.v1.CreateVolumeSnapshotResponse
+	113, // 280: weft.v1.WeftAgent.ListVolumeSnapshots:output_type -> weft.v1.ListVolumeSnapshotsResponse
+	115, // 281: weft.v1.WeftAgent.RestoreVolumeSnapshot:output_type -> weft.v1.RestoreVolumeSnapshotResponse
+	119, // 282: weft.v1.WeftAgent.RevertVolumeSnapshot:output_type -> weft.v1.RevertVolumeSnapshotResponse
+	117, // 283: weft.v1.WeftAgent.DeleteVolumeSnapshot:output_type -> weft.v1.DeleteVolumeSnapshotResponse
+	122, // 284: weft.v1.WeftAgent.CreateVolumeBackup:output_type -> weft.v1.CreateVolumeBackupResponse
+	124, // 285: weft.v1.WeftAgent.ListVolumeBackups:output_type -> weft.v1.ListVolumeBackupsResponse
+	126, // 286: weft.v1.WeftAgent.DeleteVolumeBackup:output_type -> weft.v1.DeleteVolumeBackupResponse
+	128, // 287: weft.v1.WeftAgent.RestoreVolumeBackup:output_type -> weft.v1.RestoreVolumeBackupResponse
+	129, // 288: weft.v1.WeftAgent.WatchEvents:output_type -> weft.v1.PlatformEvent
+	132, // 289: weft.v1.WeftAgent.RenderNATSAuthorization:output_type -> weft.v1.RenderNATSAuthorizationResponse
+	154, // 290: weft.v1.WeftAgent.RegisterHost:output_type -> weft.v1.RegisterHostResponse
+	156, // 291: weft.v1.WeftAgent.ListHosts:output_type -> weft.v1.ListHostsResponse
+	158, // 292: weft.v1.WeftAgent.GetHost:output_type -> weft.v1.GetHostResponse
+	160, // 293: weft.v1.WeftAgent.HeartbeatHost:output_type -> weft.v1.HeartbeatHostResponse
+	162, // 294: weft.v1.WeftAgent.SetHostState:output_type -> weft.v1.SetHostStateResponse
+	164, // 295: weft.v1.WeftAgent.SetHostLabels:output_type -> weft.v1.SetHostLabelsResponse
+	166, // 296: weft.v1.WeftAgent.SetHostCordoned:output_type -> weft.v1.SetHostCordonedResponse
+	168, // 297: weft.v1.WeftAgent.DeleteHost:output_type -> weft.v1.DeleteHostResponse
+	139, // 298: weft.v1.WeftAgent.PublishShareToProject:output_type -> weft.v1.PublishShareToProjectResponse
+	189, // 299: weft.v1.WeftAgent.ListTenants:output_type -> weft.v1.ListTenantsResponse
+	191, // 300: weft.v1.WeftAgent.CreateTenant:output_type -> weft.v1.CreateTenantResponse
+	193, // 301: weft.v1.WeftAgent.DeleteTenant:output_type -> weft.v1.DeleteTenantResponse
+	195, // 302: weft.v1.WeftAgent.AddTenantAdmin:output_type -> weft.v1.AddTenantAdminResponse
+	197, // 303: weft.v1.WeftAgent.RemoveTenantAdmin:output_type -> weft.v1.RemoveTenantAdminResponse
+	199, // 304: weft.v1.WeftAgent.AddTenantMember:output_type -> weft.v1.AddTenantMemberResponse
+	201, // 305: weft.v1.WeftAgent.RemoveTenantMember:output_type -> weft.v1.RemoveTenantMemberResponse
+	204, // 306: weft.v1.WeftAgent.GetTenantQuota:output_type -> weft.v1.GetTenantQuotaResponse
+	206, // 307: weft.v1.WeftAgent.SetTenantQuota:output_type -> weft.v1.SetTenantQuotaResponse
+	208, // 308: weft.v1.WeftAgent.GetProjectQuota:output_type -> weft.v1.GetProjectQuotaResponse
+	210, // 309: weft.v1.WeftAgent.SetProjectQuota:output_type -> weft.v1.SetProjectQuotaResponse
+	213, // 310: weft.v1.WeftAgent.ListShares:output_type -> weft.v1.ListSharesResponse
+	215, // 311: weft.v1.WeftAgent.CreateShare:output_type -> weft.v1.CreateShareResponse
+	217, // 312: weft.v1.WeftAgent.DeleteShare:output_type -> weft.v1.DeleteShareResponse
+	220, // 313: weft.v1.WeftAgent.ListFloatingIPs:output_type -> weft.v1.ListFloatingIPsResponse
+	222, // 314: weft.v1.WeftAgent.AllocateFloatingIP:output_type -> weft.v1.AllocateFloatingIPResponse
+	224, // 315: weft.v1.WeftAgent.ReleaseFloatingIP:output_type -> weft.v1.ReleaseFloatingIPResponse
+	226, // 316: weft.v1.WeftAgent.MapFloatingIP:output_type -> weft.v1.MapFloatingIPResponse
+	228, // 317: weft.v1.WeftAgent.UnmapFloatingIP:output_type -> weft.v1.UnmapFloatingIPResponse
+	231, // 318: weft.v1.WeftAgent.ListFlavors:output_type -> weft.v1.ListFlavorsResponse
+	233, // 319: weft.v1.WeftAgent.GetFlavor:output_type -> weft.v1.GetFlavorResponse
+	235, // 320: weft.v1.WeftAgent.SetFlavor:output_type -> weft.v1.SetFlavorResponse
+	237, // 321: weft.v1.WeftAgent.DeleteFlavor:output_type -> weft.v1.DeleteFlavorResponse
+	240, // 322: weft.v1.WeftAgent.ListScripts:output_type -> weft.v1.ListScriptsResponse
+	242, // 323: weft.v1.WeftAgent.GetScript:output_type -> weft.v1.GetScriptResponse
+	244, // 324: weft.v1.WeftAgent.SetScript:output_type -> weft.v1.SetScriptResponse
+	246, // 325: weft.v1.WeftAgent.DeleteScript:output_type -> weft.v1.DeleteScriptResponse
+	249, // 326: weft.v1.WeftAgent.ListVMProperties:output_type -> weft.v1.ListVMPropertiesResponse
+	251, // 327: weft.v1.WeftAgent.SetVMProperty:output_type -> weft.v1.SetVMPropertyResponse
+	253, // 328: weft.v1.WeftAgent.DeleteVMProperty:output_type -> weft.v1.DeleteVMPropertyResponse
+	256, // 329: weft.v1.WeftAgent.ListUEFIVars:output_type -> weft.v1.ListUEFIVarsResponse
+	258, // 330: weft.v1.WeftAgent.SetUEFIVar:output_type -> weft.v1.SetUEFIVarResponse
+	260, // 331: weft.v1.WeftAgent.DeleteUEFIVar:output_type -> weft.v1.DeleteUEFIVarResponse
+	263, // 332: weft.v1.WeftAgent.ListVMSSHKeys:output_type -> weft.v1.ListVMSSHKeysResponse
+	265, // 333: weft.v1.WeftAgent.AddVMSSHKey:output_type -> weft.v1.AddVMSSHKeyResponse
+	267, // 334: weft.v1.WeftAgent.RemoveVMSSHKey:output_type -> weft.v1.RemoveVMSSHKeyResponse
+	142, // 335: weft.v1.WeftAgent.ListFederationPeers:output_type -> weft.v1.ListFederationPeersResponse
+	147, // 336: weft.v1.WeftAgent.ListPluginCatalogue:output_type -> weft.v1.ListPluginCatalogueResponse
+	149, // 337: weft.v1.WeftAgent.ListInstalledPlugins:output_type -> weft.v1.ListInstalledPluginsResponse
+	151, // 338: weft.v1.WeftAgent.InstallPlugin:output_type -> weft.v1.InstallPluginResponse
+	170, // 339: weft.v1.AgentDispatch.Connect:output_type -> weft.v1.ControlMessage
+	231, // [231:340] is the sub-list for method output_type
+	122, // [122:231] is the sub-list for method input_type
+	122, // [122:122] is the sub-list for extension type_name
+	122, // [122:122] is the sub-list for extension extendee
+	0,   // [0:122] is the sub-list for field type_name
 }
 
 func init() { file_weft_proto_init() }
@@ -16307,24 +16974,24 @@ func file_weft_proto_init() {
 	if File_weft_proto != nil {
 		return
 	}
-	file_weft_proto_msgTypes[157].OneofWrappers = []any{
+	file_weft_proto_msgTypes[168].OneofWrappers = []any{
 		(*AgentMessage_Hello)(nil),
 		(*AgentMessage_Pong)(nil),
 		(*AgentMessage_Reply)(nil),
 	}
-	file_weft_proto_msgTypes[158].OneofWrappers = []any{
+	file_weft_proto_msgTypes[169].OneofWrappers = []any{
 		(*ControlMessage_HelloAck)(nil),
 		(*ControlMessage_Ping)(nil),
 		(*ControlMessage_Request)(nil),
 	}
-	file_weft_proto_msgTypes[163].OneofWrappers = []any{
+	file_weft_proto_msgTypes[174].OneofWrappers = []any{
 		(*DriverRequest_CreateVm)(nil),
 		(*DriverRequest_RegisterMicroVm)(nil),
 		(*DriverRequest_StartVm)(nil),
 		(*DriverRequest_StopVm)(nil),
 		(*DriverRequest_DeleteVm)(nil),
 	}
-	file_weft_proto_msgTypes[164].OneofWrappers = []any{
+	file_weft_proto_msgTypes[175].OneofWrappers = []any{
 		(*DriverReply_CreateVm)(nil),
 		(*DriverReply_RegisterMicroVm)(nil),
 		(*DriverReply_StartVm)(nil),
@@ -16337,7 +17004,7 @@ func file_weft_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_weft_proto_rawDesc), len(file_weft_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   262,
+			NumMessages:   273,
 			NumExtensions: 0,
 			NumServices:   2,
 		},

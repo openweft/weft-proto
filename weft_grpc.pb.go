@@ -70,7 +70,12 @@ const (
 	WeftAgent_CreateVolumeSnapshot_FullMethodName            = "/weft.v1.WeftAgent/CreateVolumeSnapshot"
 	WeftAgent_ListVolumeSnapshots_FullMethodName             = "/weft.v1.WeftAgent/ListVolumeSnapshots"
 	WeftAgent_RestoreVolumeSnapshot_FullMethodName           = "/weft.v1.WeftAgent/RestoreVolumeSnapshot"
+	WeftAgent_RevertVolumeSnapshot_FullMethodName            = "/weft.v1.WeftAgent/RevertVolumeSnapshot"
 	WeftAgent_DeleteVolumeSnapshot_FullMethodName            = "/weft.v1.WeftAgent/DeleteVolumeSnapshot"
+	WeftAgent_CreateVolumeBackup_FullMethodName              = "/weft.v1.WeftAgent/CreateVolumeBackup"
+	WeftAgent_ListVolumeBackups_FullMethodName               = "/weft.v1.WeftAgent/ListVolumeBackups"
+	WeftAgent_DeleteVolumeBackup_FullMethodName              = "/weft.v1.WeftAgent/DeleteVolumeBackup"
+	WeftAgent_RestoreVolumeBackup_FullMethodName             = "/weft.v1.WeftAgent/RestoreVolumeBackup"
 	WeftAgent_WatchEvents_FullMethodName                     = "/weft.v1.WeftAgent/WatchEvents"
 	WeftAgent_RenderNATSAuthorization_FullMethodName         = "/weft.v1.WeftAgent/RenderNATSAuthorization"
 	WeftAgent_RegisterHost_FullMethodName                    = "/weft.v1.WeftAgent/RegisterHost"
@@ -217,7 +222,16 @@ type WeftAgentClient interface {
 	CreateVolumeSnapshot(ctx context.Context, in *CreateVolumeSnapshotRequest, opts ...grpc.CallOption) (*CreateVolumeSnapshotResponse, error)
 	ListVolumeSnapshots(ctx context.Context, in *ListVolumeSnapshotsRequest, opts ...grpc.CallOption) (*ListVolumeSnapshotsResponse, error)
 	RestoreVolumeSnapshot(ctx context.Context, in *RestoreVolumeSnapshotRequest, opts ...grpc.CallOption) (*RestoreVolumeSnapshotResponse, error)
+	RevertVolumeSnapshot(ctx context.Context, in *RevertVolumeSnapshotRequest, opts ...grpc.CallOption) (*RevertVolumeSnapshotResponse, error)
 	DeleteVolumeSnapshot(ctx context.Context, in *DeleteVolumeSnapshotRequest, opts ...grpc.CallOption) (*DeleteVolumeSnapshotResponse, error)
+	// Volume backup RPCs. A backup ships a snapshot's contents to a remote
+	// backupstore (S3 / SFTP) and yields a URL that's stable across volume
+	// lifecycles — survives the source volume's deletion and can be restored
+	// into any project the caller has access to.
+	CreateVolumeBackup(ctx context.Context, in *CreateVolumeBackupRequest, opts ...grpc.CallOption) (*CreateVolumeBackupResponse, error)
+	ListVolumeBackups(ctx context.Context, in *ListVolumeBackupsRequest, opts ...grpc.CallOption) (*ListVolumeBackupsResponse, error)
+	DeleteVolumeBackup(ctx context.Context, in *DeleteVolumeBackupRequest, opts ...grpc.CallOption) (*DeleteVolumeBackupResponse, error)
+	RestoreVolumeBackup(ctx context.Context, in *RestoreVolumeBackupRequest, opts ...grpc.CallOption) (*RestoreVolumeBackupResponse, error)
 	// WatchEvents opens a server-stream of platform events. Lets
 	// clients react to VM lifecycle / project mutation / guest-side
 	// marker changes without polling. ACL-filtered server-side by
@@ -820,10 +834,60 @@ func (c *weftAgentClient) RestoreVolumeSnapshot(ctx context.Context, in *Restore
 	return out, nil
 }
 
+func (c *weftAgentClient) RevertVolumeSnapshot(ctx context.Context, in *RevertVolumeSnapshotRequest, opts ...grpc.CallOption) (*RevertVolumeSnapshotResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RevertVolumeSnapshotResponse)
+	err := c.cc.Invoke(ctx, WeftAgent_RevertVolumeSnapshot_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *weftAgentClient) DeleteVolumeSnapshot(ctx context.Context, in *DeleteVolumeSnapshotRequest, opts ...grpc.CallOption) (*DeleteVolumeSnapshotResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(DeleteVolumeSnapshotResponse)
 	err := c.cc.Invoke(ctx, WeftAgent_DeleteVolumeSnapshot_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *weftAgentClient) CreateVolumeBackup(ctx context.Context, in *CreateVolumeBackupRequest, opts ...grpc.CallOption) (*CreateVolumeBackupResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateVolumeBackupResponse)
+	err := c.cc.Invoke(ctx, WeftAgent_CreateVolumeBackup_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *weftAgentClient) ListVolumeBackups(ctx context.Context, in *ListVolumeBackupsRequest, opts ...grpc.CallOption) (*ListVolumeBackupsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListVolumeBackupsResponse)
+	err := c.cc.Invoke(ctx, WeftAgent_ListVolumeBackups_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *weftAgentClient) DeleteVolumeBackup(ctx context.Context, in *DeleteVolumeBackupRequest, opts ...grpc.CallOption) (*DeleteVolumeBackupResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteVolumeBackupResponse)
+	err := c.cc.Invoke(ctx, WeftAgent_DeleteVolumeBackup_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *weftAgentClient) RestoreVolumeBackup(ctx context.Context, in *RestoreVolumeBackupRequest, opts ...grpc.CallOption) (*RestoreVolumeBackupResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RestoreVolumeBackupResponse)
+	err := c.cc.Invoke(ctx, WeftAgent_RestoreVolumeBackup_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1442,7 +1506,16 @@ type WeftAgentServer interface {
 	CreateVolumeSnapshot(context.Context, *CreateVolumeSnapshotRequest) (*CreateVolumeSnapshotResponse, error)
 	ListVolumeSnapshots(context.Context, *ListVolumeSnapshotsRequest) (*ListVolumeSnapshotsResponse, error)
 	RestoreVolumeSnapshot(context.Context, *RestoreVolumeSnapshotRequest) (*RestoreVolumeSnapshotResponse, error)
+	RevertVolumeSnapshot(context.Context, *RevertVolumeSnapshotRequest) (*RevertVolumeSnapshotResponse, error)
 	DeleteVolumeSnapshot(context.Context, *DeleteVolumeSnapshotRequest) (*DeleteVolumeSnapshotResponse, error)
+	// Volume backup RPCs. A backup ships a snapshot's contents to a remote
+	// backupstore (S3 / SFTP) and yields a URL that's stable across volume
+	// lifecycles — survives the source volume's deletion and can be restored
+	// into any project the caller has access to.
+	CreateVolumeBackup(context.Context, *CreateVolumeBackupRequest) (*CreateVolumeBackupResponse, error)
+	ListVolumeBackups(context.Context, *ListVolumeBackupsRequest) (*ListVolumeBackupsResponse, error)
+	DeleteVolumeBackup(context.Context, *DeleteVolumeBackupRequest) (*DeleteVolumeBackupResponse, error)
+	RestoreVolumeBackup(context.Context, *RestoreVolumeBackupRequest) (*RestoreVolumeBackupResponse, error)
 	// WatchEvents opens a server-stream of platform events. Lets
 	// clients react to VM lifecycle / project mutation / guest-side
 	// marker changes without polling. ACL-filtered server-side by
@@ -1688,8 +1761,23 @@ func (UnimplementedWeftAgentServer) ListVolumeSnapshots(context.Context, *ListVo
 func (UnimplementedWeftAgentServer) RestoreVolumeSnapshot(context.Context, *RestoreVolumeSnapshotRequest) (*RestoreVolumeSnapshotResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RestoreVolumeSnapshot not implemented")
 }
+func (UnimplementedWeftAgentServer) RevertVolumeSnapshot(context.Context, *RevertVolumeSnapshotRequest) (*RevertVolumeSnapshotResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RevertVolumeSnapshot not implemented")
+}
 func (UnimplementedWeftAgentServer) DeleteVolumeSnapshot(context.Context, *DeleteVolumeSnapshotRequest) (*DeleteVolumeSnapshotResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteVolumeSnapshot not implemented")
+}
+func (UnimplementedWeftAgentServer) CreateVolumeBackup(context.Context, *CreateVolumeBackupRequest) (*CreateVolumeBackupResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateVolumeBackup not implemented")
+}
+func (UnimplementedWeftAgentServer) ListVolumeBackups(context.Context, *ListVolumeBackupsRequest) (*ListVolumeBackupsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListVolumeBackups not implemented")
+}
+func (UnimplementedWeftAgentServer) DeleteVolumeBackup(context.Context, *DeleteVolumeBackupRequest) (*DeleteVolumeBackupResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteVolumeBackup not implemented")
+}
+func (UnimplementedWeftAgentServer) RestoreVolumeBackup(context.Context, *RestoreVolumeBackupRequest) (*RestoreVolumeBackupResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RestoreVolumeBackup not implemented")
 }
 func (UnimplementedWeftAgentServer) WatchEvents(*WatchEventsRequest, grpc.ServerStreamingServer[PlatformEvent]) error {
 	return status.Error(codes.Unimplemented, "method WatchEvents not implemented")
@@ -2783,6 +2871,24 @@ func _WeftAgent_RestoreVolumeSnapshot_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WeftAgent_RevertVolumeSnapshot_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RevertVolumeSnapshotRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WeftAgentServer).RevertVolumeSnapshot(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WeftAgent_RevertVolumeSnapshot_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WeftAgentServer).RevertVolumeSnapshot(ctx, req.(*RevertVolumeSnapshotRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _WeftAgent_DeleteVolumeSnapshot_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(DeleteVolumeSnapshotRequest)
 	if err := dec(in); err != nil {
@@ -2797,6 +2903,78 @@ func _WeftAgent_DeleteVolumeSnapshot_Handler(srv interface{}, ctx context.Contex
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(WeftAgentServer).DeleteVolumeSnapshot(ctx, req.(*DeleteVolumeSnapshotRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WeftAgent_CreateVolumeBackup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateVolumeBackupRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WeftAgentServer).CreateVolumeBackup(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WeftAgent_CreateVolumeBackup_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WeftAgentServer).CreateVolumeBackup(ctx, req.(*CreateVolumeBackupRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WeftAgent_ListVolumeBackups_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListVolumeBackupsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WeftAgentServer).ListVolumeBackups(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WeftAgent_ListVolumeBackups_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WeftAgentServer).ListVolumeBackups(ctx, req.(*ListVolumeBackupsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WeftAgent_DeleteVolumeBackup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteVolumeBackupRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WeftAgentServer).DeleteVolumeBackup(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WeftAgent_DeleteVolumeBackup_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WeftAgentServer).DeleteVolumeBackup(ctx, req.(*DeleteVolumeBackupRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WeftAgent_RestoreVolumeBackup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RestoreVolumeBackupRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WeftAgentServer).RestoreVolumeBackup(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WeftAgent_RestoreVolumeBackup_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WeftAgentServer).RestoreVolumeBackup(ctx, req.(*RestoreVolumeBackupRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -3924,8 +4102,28 @@ var WeftAgent_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _WeftAgent_RestoreVolumeSnapshot_Handler,
 		},
 		{
+			MethodName: "RevertVolumeSnapshot",
+			Handler:    _WeftAgent_RevertVolumeSnapshot_Handler,
+		},
+		{
 			MethodName: "DeleteVolumeSnapshot",
 			Handler:    _WeftAgent_DeleteVolumeSnapshot_Handler,
+		},
+		{
+			MethodName: "CreateVolumeBackup",
+			Handler:    _WeftAgent_CreateVolumeBackup_Handler,
+		},
+		{
+			MethodName: "ListVolumeBackups",
+			Handler:    _WeftAgent_ListVolumeBackups_Handler,
+		},
+		{
+			MethodName: "DeleteVolumeBackup",
+			Handler:    _WeftAgent_DeleteVolumeBackup_Handler,
+		},
+		{
+			MethodName: "RestoreVolumeBackup",
+			Handler:    _WeftAgent_RestoreVolumeBackup_Handler,
 		},
 		{
 			MethodName: "RenderNATSAuthorization",

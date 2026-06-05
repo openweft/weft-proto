@@ -7,6 +7,16 @@ and this project aims to adhere to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased]
 
+## [v0.6.0] — 2026-06-05
+
+### Added
+
+- **Volume snapshot/backup RPC surface** on `WeftAgent` :
+  - `RevertVolumeSnapshot` — rolls a block-backend volume back to a captured snapshot (driver dispatches via `weft-block` ; file-backend parents reject with FailedPrecondition).
+  - `CreateVolumeBackup` / `ListVolumeBackups` / `DeleteVolumeBackup` / `RestoreVolumeBackup` — off-host backups of block-backend volumes to one of four target schemes (`oci://` recommended, `s3://` for versitygw / CubeFS objectnode, `sftp://` for sftpgo, `fs:///` for dev).
+- Supporting messages : `RevertVolumeSnapshotRequest/Response`, `CreateVolumeBackupRequest/Response`, `ListVolumeBackupsRequest/Response`, `DeleteVolumeBackupRequest/Response`, `RestoreVolumeBackupRequest/Response`, `VolumeBackupInfo` (URL + volume + snapshot + project + size + state + error + created).
+- `VolumeInfo.backend` (field 8) — surfaces the storage backend (`file` default, `block` for weft-block). Drives the dashboard's affordance gating on snapshot Revert + Backup actions (block-only).
+
 ## [v0.5.0] — 2026-06-02
 
 ### Added

@@ -556,6 +556,11 @@ message VolumeInfo {
   string format             = 5; // "raw" | "qcow2"
   string attached_to_uuid   = 6; // empty = detached
   int64  created_at_unix_ns = 7;
+  // backend picks the storage driver that owns the blocks. "file"
+  // = host-local reflink-aware files (default) ; "block" = replicated
+  // block storage via weft-block. Snapshot revert + backup operations
+  // dispatch on this field and require backend == "block".
+  string backend            = 8;
 }
 
 message ListVolumesRequest  {
@@ -639,6 +644,57 @@ message RestoreVolumeSnapshotResponse { VolumeInfo volume = 1; }
 
 message DeleteVolumeSnapshotRequest  { string uuid = 1; }
 message DeleteVolumeSnapshotResponse {}
+
+// RevertVolumeSnapshot rolls a block-backed volume back to an earlier
+// snapshot, IN PLACE. Different from RestoreVolumeSnapshot which clones
+// into a NEW volume. File-backed volumes don't support revert (operators
+// clone-then-rename via Restore). The volume must be detached first.
+message RevertVolumeSnapshotRequest  { string uuid = 1; }
+message RevertVolumeSnapshotResponse {}
+
+// Volume backup : ship a snapshot's contents to a remote backupstore.
+// Targets supported : "s3://bucket@region/prefix" (versitygw / native S3),
+// "sftp://user@host:port/path" (sftpgo). Backups are addressed by URL ;
+// listing scopes by target + optional volume_uuid filter.
+
+message VolumeBackupInfo {
+  string url                = 1;  // target-specific URL the backup lives at
+  string volume_uuid        = 2;  // origin volume (informational ; survives delete)
+  string snapshot_uuid      = 3;  // the snapshot the backup was taken from
+  string project            = 4;
+  int64  size_bytes         = 5;
+  int64  created_at_unix_ns = 6;
+  string state              = 7;  // "in-progress" | "complete" | "error"
+  string error              = 8;  // populated when state == "error"
+}
+
+message CreateVolumeBackupRequest  {
+  string volume_uuid   = 1;
+  string snapshot_uuid = 2;  // must already exist (taken via CreateVolumeSnapshot)
+  string target        = 3;  // s3:// or sftp:// URL
+  string project       = 4;
+}
+message CreateVolumeBackupResponse { VolumeBackupInfo backup = 1; }
+
+message ListVolumeBackupsRequest  {
+  string target      = 1;  // required (backupstore is target-keyed)
+  string volume_uuid = 2;  // empty → all volumes at the target
+  string project     = 3;
+}
+message ListVolumeBackupsResponse { repeated VolumeBackupInfo backups = 1; }
+
+message DeleteVolumeBackupRequest  { string url = 1; }
+message DeleteVolumeBackupResponse {}
+
+// RestoreVolumeBackup creates a NEW volume populated from the backup at
+// `url`. Same shape as RestoreVolumeSnapshot — backup → fresh volume,
+// never mutating the source.
+message RestoreVolumeBackupRequest  {
+  string url             = 1;
+  string new_volume_name = 2;
+  string project         = 3;
+}
+message RestoreVolumeBackupResponse { VolumeInfo volume = 1; }
 
 // --- WatchEvents (server-streaming event bus) ---
 
@@ -980,7 +1036,17 @@ service WeftAgent {
   rpc CreateVolumeSnapshot  (CreateVolumeSnapshotRequest)  returns (CreateVolumeSnapshotResponse);
   rpc ListVolumeSnapshots   (ListVolumeSnapshotsRequest)   returns (ListVolumeSnapshotsResponse);
   rpc RestoreVolumeSnapshot (RestoreVolumeSnapshotRequest) returns (RestoreVolumeSnapshotResponse);
+  rpc RevertVolumeSnapshot  (RevertVolumeSnapshotRequest)  returns (RevertVolumeSnapshotResponse);
   rpc DeleteVolumeSnapshot  (DeleteVolumeSnapshotRequest)  returns (DeleteVolumeSnapshotResponse);
+
+  // Volume backup RPCs. A backup ships a snapshot's contents to a remote
+  // backupstore (S3 / SFTP) and yields a URL that's stable across volume
+  // lifecycles — survives the source volume's deletion and can be restored
+  // into any project the caller has access to.
+  rpc CreateVolumeBackup  (CreateVolumeBackupRequest)  returns (CreateVolumeBackupResponse);
+  rpc ListVolumeBackups   (ListVolumeBackupsRequest)   returns (ListVolumeBackupsResponse);
+  rpc DeleteVolumeBackup  (DeleteVolumeBackupRequest)  returns (DeleteVolumeBackupResponse);
+  rpc RestoreVolumeBackup (RestoreVolumeBackupRequest) returns (RestoreVolumeBackupResponse);
 
   // WatchEvents opens a server-stream of platform events. Lets
   // clients react to VM lifecycle / project mutation / guest-side
