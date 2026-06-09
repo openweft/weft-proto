@@ -1203,6 +1203,7 @@ service WeftAgent {
   rpc SetHostState    (SetHostStateRequest)    returns (SetHostStateResponse);
   rpc SetHostLabels   (SetHostLabelsRequest)   returns (SetHostLabelsResponse);
   rpc SetVMLabels     (SetVMLabelsRequest)     returns (SetVMLabelsResponse);
+  rpc GetZombieReport (GetZombieReportRequest) returns (GetZombieReportResponse);
   rpc SetHostCordoned (SetHostCordonedRequest) returns (SetHostCordonedResponse);
   rpc DeleteHost      (DeleteHostRequest)      returns (DeleteHostResponse);
 
@@ -1461,6 +1462,35 @@ message SetHostLabelsResponse {}
 // `deployment.type=ha` is the canonical respawn-eligible marker.
 message SetVMLabelsRequest  { string project = 1; string name = 2; map<string, string> labels = 3; }
 message SetVMLabelsResponse { VMInfo vm = 1; }
+
+// GetZombieReport exposes the latest snapshot of the agent's
+// zombiegc reconciler — what VMs it currently classifies as zombies,
+// by kind, plus the cumulative auto-delete counter. Read-only ; the
+// reconciler runs on its own ticker (default 5min, env-tunable).
+// V0.1.15.
+message GetZombieReportRequest {}
+
+// ZombieEntry describes one classified zombie. Mirrors
+// zombiegc.Zombie verbatim — kind is one of "local", "ci_cross_host",
+// "ha_cross_host", "orphan_project", "orphan_dir".
+message ZombieEntry {
+  string uuid              = 1;
+  string name              = 2;
+  string project_uuid      = 3;
+  string host_uuid         = 4;
+  string kind              = 5;
+  string reason            = 6;
+  string deployment_type   = 7;
+  int64  detected_at_unix_ns = 8;
+  int64  host_down_since_unix_ns = 9;
+}
+
+message GetZombieReportResponse {
+  repeated ZombieEntry zombies         = 1;
+  uint64 deleted_total                 = 2;
+  int64  last_sweep_at_unix_ns         = 3;
+  map<string, int32> zombies_by_kind   = 4; // kind → count
+}
 
 // SetHostCordoned flips the host's cordon flag. Cordoned hosts
 // stay Active (existing VMs keep running) but the scheduler drops
