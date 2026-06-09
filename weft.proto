@@ -35,6 +35,10 @@ message VMInfo {
   // `AttachVolumeRequest.vm_uuid` and similar UUID-keyed RPCs match
   // it. Survives a `RenameVM` if/when that lands.
   string   uuid          = 11;
+  // V0.1.8 : operator-supplied annotations consumed by
+  // SchedulingRule label-based selectors + reserved-key system
+  // gates (deployment.type=ci|ha, …). Mirrors VM.Labels server-side.
+  map<string, string> labels = 12;
 }
 
 // --- AvailabilityZones (AZ) ---
@@ -1198,6 +1202,7 @@ service WeftAgent {
   rpc HeartbeatHost  (HeartbeatHostRequest)  returns (HeartbeatHostResponse);
   rpc SetHostState    (SetHostStateRequest)    returns (SetHostStateResponse);
   rpc SetHostLabels   (SetHostLabelsRequest)   returns (SetHostLabelsResponse);
+  rpc SetVMLabels     (SetVMLabelsRequest)     returns (SetVMLabelsResponse);
   rpc SetHostCordoned (SetHostCordonedRequest) returns (SetHostCordonedResponse);
   rpc DeleteHost      (DeleteHostRequest)      returns (DeleteHostResponse);
 
@@ -1448,6 +1453,14 @@ message SetHostStateResponse {}
 // scheduler's LabelSelectors match against these.
 message SetHostLabelsRequest  { string uuid = 1; map<string, string> labels = 2; }
 message SetHostLabelsResponse {}
+
+// SetVMLabels replaces a VM's label set atomically. V0.1.8 :
+// labels drive SchedulingRule label-based selectors (`role=loom`,
+// `deployment.type=ha`, etc.) and reserved keys gate system
+// behaviour : `deployment.type=ci` skips etcd-backup persistence ;
+// `deployment.type=ha` is the canonical respawn-eligible marker.
+message SetVMLabelsRequest  { string project = 1; string name = 2; map<string, string> labels = 3; }
+message SetVMLabelsResponse { VMInfo vm = 1; }
 
 // SetHostCordoned flips the host's cordon flag. Cordoned hosts
 // stay Active (existing VMs keep running) but the scheduler drops
