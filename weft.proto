@@ -1203,7 +1203,8 @@ service WeftAgent {
   rpc SetHostState    (SetHostStateRequest)    returns (SetHostStateResponse);
   rpc SetHostLabels   (SetHostLabelsRequest)   returns (SetHostLabelsResponse);
   rpc SetVMLabels     (SetVMLabelsRequest)     returns (SetVMLabelsResponse);
-  rpc GetZombieReport (GetZombieReportRequest) returns (GetZombieReportResponse);
+  rpc GetZombieReport     (GetZombieReportRequest)     returns (GetZombieReportResponse);
+  rpc TriggerZombieSweep  (TriggerZombieSweepRequest)  returns (GetZombieReportResponse);
   rpc SetHostCordoned (SetHostCordonedRequest) returns (SetHostCordonedResponse);
   rpc DeleteHost      (DeleteHostRequest)      returns (DeleteHostResponse);
 
@@ -1491,6 +1492,13 @@ message GetZombieReportResponse {
   int64  last_sweep_at_unix_ns         = 3;
   map<string, int32> zombies_by_kind   = 4; // kind → count
 }
+
+// TriggerZombieSweep runs the reconciler immediately + returns the
+// fresh report. Closes the --apply loop in `weft instance gc` —
+// previously the CLI only listed the last cached sweep ; now it
+// can demand a sweep on demand without waiting for the next tick.
+// Admin-gated like GetZombieReport. V0.1.16.
+message TriggerZombieSweepRequest {}
 
 // SetHostCordoned flips the host's cordon flag. Cordoned hosts
 // stay Active (existing VMs keep running) but the scheduler drops
