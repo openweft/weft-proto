@@ -548,11 +548,39 @@ message NetworkInfo {
   string cidr               = 4;
   string gateway            = 5;
   repeated string dns_servers = 6;
-  string type               = 7; // "nat" | "bridged" | "isolated"
+  string type               = 7; // "nat" | "bridged" | "isolated" | "mesh"
   int64  created_at_unix_ns = 8;
   // Security-group UUIDs applied by default to every NIC that
   // joins this network. Updated via SetNetworkDefaultSecurityGroups.
   repeated string default_security_group_uuids = 9;
+
+  // ── Edge attachment for floating IPs ────────────────────────
+  // ExternalMode selects how floating IPs allocated from this
+  // network reach the outside world :
+  //
+  //   "bgp"  (default) — a per-tenant weft-router microVM
+  //          announces each active FIP as a /32 via BGP to the
+  //          upstream ISP. Suitable for cloud / colo deployments
+  //          with a public ASN.
+  //   "vlan" — the FIP lives directly inside an establishment-
+  //          provided subnet on a VLAN. The host running the
+  //          target VM attaches a macvlan to the VLAN
+  //          subinterface, binds the FIP, answers ARP locally,
+  //          and emits gratuitous ARP on migration. No routing
+  //          protocol involved — fits academic / enterprise
+  //          setups where the network team gives you a VLAN +
+  //          subnet and nothing else.
+  //   ""     — defaults to "bgp" (backward compat).
+  string external_mode = 10;
+  // Vlan is the 802.1Q VLAN id when external_mode == "vlan".
+  // Range 1-4094 ; 0 means "untagged" (the parent interface
+  // itself is on the right VLAN, no tagging required).
+  int32  vlan = 11;
+  // ParentInterface is the host NIC the macvlan attaches to
+  // (e.g. "eth0", "bond0"). Required when external_mode == "vlan".
+  // The orchestrator doesn't validate it server-side ; each host's
+  // weft-agent must have the interface up.
+  string parent_interface = 12;
 }
 
 message ListNetworksRequest  {
@@ -572,6 +600,12 @@ message CreateNetworkRequest {
   string gateway    = 4;
   repeated string dns_servers = 5;
   string type       = 6; // empty → "nat"
+  // Edge-attachment knobs for floating IPs ; see
+  // NetworkInfo.external_mode / vlan / parent_interface for the
+  // semantics. external_mode == "" defaults to "bgp".
+  string external_mode    = 7;
+  int32  vlan             = 8;
+  string parent_interface = 9;
 }
 message CreateNetworkResponse { NetworkInfo network = 1; }
 
