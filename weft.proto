@@ -629,6 +629,39 @@ message SetNetworkDefaultSecurityGroupsRequest {
 }
 message SetNetworkDefaultSecurityGroupsResponse { NetworkInfo network = 1; }
 
+// --- Ports (per-NIC binding to a network) ---
+
+// PortInfo describes one VM NIC binding to a network. Each VM
+// gets exactly one Port per NIC at create time ; portsec
+// (anti-spoof) rules are derived from MAC + IP, portqos
+// (rate-limit) caps can be attached per-port.
+message PortInfo {
+  string uuid           = 1;
+  string project_uuid   = 2;
+  string vm_uuid        = 3;
+  string network_uuid   = 4;
+  string mac            = 5;
+  string ip             = 6;
+  // SecurityGroups applied to this port. Inherits from the
+  // Network's default_security_group_uuids at create time ; the
+  // operator overrides via SetPortSecurityGroups.
+  repeated string security_groups = 7;
+  // Optional rate-limit caps in Mbps. 0 = no cap.
+  int32  ingress_mbps   = 8;
+  int32  egress_mbps    = 9;
+  // WireGuard peer key + mesh endpoint (when the network is mesh).
+  string wireguard_pub_key = 10;
+  string mesh_endpoint     = 11;
+  int64  created_at_unix_ns = 12;
+}
+
+message ListPortsForVMRequest  {
+  string vm_uuid = 1;  // either vm_uuid or vm_name (with project)
+  string vm_name = 2;
+  string project = 3;
+}
+message ListPortsForVMResponse { repeated PortInfo ports = 1; }
+
 // --- SecurityGroups (UUID-keyed L3/L4 rule sets per project) ---
 
 // SecurityRule mirrors weft.SecurityRule. Direction is "ingress" |
@@ -1169,6 +1202,11 @@ service WeftAgent {
   rpc SetNetworkDNS  (SetNetworkDNSRequest)  returns (SetNetworkDNSResponse);
   rpc DeleteNetwork  (DeleteNetworkRequest)  returns (DeleteNetworkResponse);
   rpc SetNetworkDefaultSecurityGroups (SetNetworkDefaultSecurityGroupsRequest) returns (SetNetworkDefaultSecurityGroupsResponse);
+
+  // Read-only Port view : every NIC binding for a given VM ;
+  // operators inspect MAC/IP/security-groups/QoS caps. Writes
+  // happen at VM create time today (no UpdatePort yet).
+  rpc ListPortsForVM (ListPortsForVMRequest) returns (ListPortsForVMResponse);
 
   // SecurityGroup registry RPCs. SetSecurityGroupRules replaces
   // the rule list atomically — clients GET-modify-PUT.
