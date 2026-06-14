@@ -1907,6 +1907,13 @@ message FloatingIPInfo {
   string mapped_to          = 5; // VM name or LB name ; "" = available
   string status             = 6; // "active" | "available"
   int64  allocated_at_unix_ns = 7;
+  // RateLimitPPS caps inbound packets per second the DNAT rule
+  // accepts before dropping new connections — a simple anti-DDoS
+  // knob the operator dials in on Internet-facing FIPs. 0 = no
+  // limit (default). Set via MapFloatingIP or a dedicated
+  // SetFloatingIPRateLimit call (the latter ships when ops asks
+  // for "rate-limit without re-mapping").
+  int32  rate_limit_pps     = 8;
 }
 
 message ListFloatingIPsRequest  {
@@ -1939,6 +1946,10 @@ message MapFloatingIPRequest {
   string uuid        = 1;
   string target_kind = 2; // "vm" | "lb"
   string target_name = 3;
+  // RateLimitPPS : optional rate cap installed on the DNAT rule.
+  // 0 leaves the existing setting unchanged on idempotent Map ;
+  // > 0 overrides. Capped at 100000 by the server.
+  int32  rate_limit_pps = 4;
 }
 message MapFloatingIPResponse { FloatingIPInfo floating_ip = 1; }
 
