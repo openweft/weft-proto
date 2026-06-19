@@ -23,6 +23,7 @@ const (
 	WeftAgent_VMStatus_FullMethodName                        = "/weft.v1.WeftAgent/VMStatus"
 	WeftAgent_StartVM_FullMethodName                         = "/weft.v1.WeftAgent/StartVM"
 	WeftAgent_StopVM_FullMethodName                          = "/weft.v1.WeftAgent/StopVM"
+	WeftAgent_RestartVM_FullMethodName                       = "/weft.v1.WeftAgent/RestartVM"
 	WeftAgent_CreateVM_FullMethodName                        = "/weft.v1.WeftAgent/CreateVM"
 	WeftAgent_DeleteVM_FullMethodName                        = "/weft.v1.WeftAgent/DeleteVM"
 	WeftAgent_ProvisionVM_FullMethodName                     = "/weft.v1.WeftAgent/ProvisionVM"
@@ -196,6 +197,7 @@ type WeftAgentClient interface {
 	VMStatus(ctx context.Context, in *VMStatusRequest, opts ...grpc.CallOption) (*VMStatusResponse, error)
 	StartVM(ctx context.Context, in *StartVMRequest, opts ...grpc.CallOption) (*StartVMResponse, error)
 	StopVM(ctx context.Context, in *StopVMRequest, opts ...grpc.CallOption) (*StopVMResponse, error)
+	RestartVM(ctx context.Context, in *RestartVMRequest, opts ...grpc.CallOption) (*RestartVMResponse, error)
 	CreateVM(ctx context.Context, in *CreateVMRequest, opts ...grpc.CallOption) (*CreateVMResponse, error)
 	DeleteVM(ctx context.Context, in *DeleteVMRequest, opts ...grpc.CallOption) (*DeleteVMResponse, error)
 	ProvisionVM(ctx context.Context, in *ProvisionVMRequest, opts ...grpc.CallOption) (*ProvisionVMResponse, error)
@@ -517,6 +519,16 @@ func (c *weftAgentClient) StopVM(ctx context.Context, in *StopVMRequest, opts ..
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(StopVMResponse)
 	err := c.cc.Invoke(ctx, WeftAgent_StopVM_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *weftAgentClient) RestartVM(ctx context.Context, in *RestartVMRequest, opts ...grpc.CallOption) (*RestartVMResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RestartVMResponse)
+	err := c.cc.Invoke(ctx, WeftAgent_RestartVM_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -2152,6 +2164,7 @@ type WeftAgentServer interface {
 	VMStatus(context.Context, *VMStatusRequest) (*VMStatusResponse, error)
 	StartVM(context.Context, *StartVMRequest) (*StartVMResponse, error)
 	StopVM(context.Context, *StopVMRequest) (*StopVMResponse, error)
+	RestartVM(context.Context, *RestartVMRequest) (*RestartVMResponse, error)
 	CreateVM(context.Context, *CreateVMRequest) (*CreateVMResponse, error)
 	DeleteVM(context.Context, *DeleteVMRequest) (*DeleteVMResponse, error)
 	ProvisionVM(context.Context, *ProvisionVMRequest) (*ProvisionVMResponse, error)
@@ -2450,6 +2463,9 @@ func (UnimplementedWeftAgentServer) StartVM(context.Context, *StartVMRequest) (*
 }
 func (UnimplementedWeftAgentServer) StopVM(context.Context, *StopVMRequest) (*StopVMResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method StopVM not implemented")
+}
+func (UnimplementedWeftAgentServer) RestartVM(context.Context, *RestartVMRequest) (*RestartVMResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RestartVM not implemented")
 }
 func (UnimplementedWeftAgentServer) CreateVM(context.Context, *CreateVMRequest) (*CreateVMResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateVM not implemented")
@@ -3023,6 +3039,24 @@ func _WeftAgent_StopVM_Handler(srv interface{}, ctx context.Context, dec func(in
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(WeftAgentServer).StopVM(ctx, req.(*StopVMRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WeftAgent_RestartVM_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RestartVMRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WeftAgentServer).RestartVM(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WeftAgent_RestartVM_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WeftAgentServer).RestartVM(ctx, req.(*RestartVMRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -5940,6 +5974,10 @@ var WeftAgent_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "StopVM",
 			Handler:    _WeftAgent_StopVM_Handler,
+		},
+		{
+			MethodName: "RestartVM",
+			Handler:    _WeftAgent_RestartVM_Handler,
 		},
 		{
 			MethodName: "CreateVM",
