@@ -39,6 +39,12 @@ message VMInfo {
   // SchedulingRule label-based selectors + reserved-key system
   // gates (deployment.type=ci|ha, …). Mirrors VM.Labels server-side.
   map<string, string> labels = 12;
+  // Stable UUID of the hypervisor host running this VM. Empty when
+  // the VM is not currently placed (newly-created, in-flight migration,
+  // or recently evacuated). Lets clients (weft-tui Host column, the
+  // webui Hosts→VMs drill-down, the scheduler's compliance probe)
+  // map VM→Host without a second ListHosts lookup.
+  string   host_uuid     = 13;
 }
 
 // --- AvailabilityZones (AZ) ---
@@ -234,6 +240,18 @@ message StartVMResponse {}
 
 message StopVMRequest  { string name = 1; string project = 2; string host_uuid = 3; }
 message StopVMResponse {}
+
+// --- RestartVM ---
+//
+// Atomic stop-then-start in one RPC. Today the weft-tui implements
+// restart as a sequential client-side StopVM → StartVM ; the
+// non-atomicity means a failed StartVM after a successful StopVM
+// leaves the VM stopped without the operator's intent. Wiring this
+// server-side lets the agent rollback (restart on the same host
+// with the same network attachments) when the start half fails.
+
+message RestartVMRequest  { string name = 1; string project = 2; }
+message RestartVMResponse {}
 
 // --- VMStatus ---
 
@@ -1121,6 +1139,7 @@ service WeftAgent {
   rpc VMStatus      (VMStatusRequest)      returns (VMStatusResponse);
   rpc StartVM       (StartVMRequest)       returns (StartVMResponse);
   rpc StopVM        (StopVMRequest)        returns (StopVMResponse);
+  rpc RestartVM     (RestartVMRequest)     returns (RestartVMResponse);
   rpc CreateVM      (CreateVMRequest)      returns (CreateVMResponse);
   rpc DeleteVM      (DeleteVMRequest)      returns (DeleteVMResponse);
   rpc ProvisionVM   (ProvisionVMRequest)   returns (ProvisionVMResponse);
