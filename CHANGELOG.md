@@ -7,6 +7,21 @@ and this project aims to adhere to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased]
 
+### Changed (breaking)
+- Rename `labels` annotation map → `properties` across the
+  host/VM scheduler surface. Field numbers preserved (wire-compat
+  for binary payloads). RPC + message names renamed :
+  - `SetHostLabels` → `SetHostProperties`
+  - `SetVMLabels` → `SetVMProperties`
+  - `*Request`/`*Response` renamed in lockstep
+  - `HostInfo.labels` (10) → `HostInfo.properties`
+  - `VMInfo.labels` (12) → `VMInfo.properties`
+  - `RegisterHostRequest.labels` (10) → `properties`
+  - `HostRegistration.labels` (agent.proto, 10) → `properties`
+  - `PodSpec.labels` (guest.proto, 5) → `properties`
+  Single naming across the openweft stack ("properties everywhere"
+  per the cluster.hcl Host.properties spec field).
+
 ## [v0.11.6] — 2026-06-14
 
 ### Added

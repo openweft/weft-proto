@@ -154,9 +154,9 @@ type VMInfo struct {
 	// it. Survives a `RenameVM` if/when that lands.
 	Uuid string `protobuf:"bytes,11,opt,name=uuid,proto3" json:"uuid,omitempty"`
 	// V0.1.8 : operator-supplied annotations consumed by
-	// SchedulingRule label-based selectors + reserved-key system
-	// gates (deployment.type=ci|ha, …). Mirrors VM.Labels server-side.
-	Labels map[string]string `protobuf:"bytes,12,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// SchedulingRule property-based selectors + reserved-key system
+	// gates (deployment.type=ci|ha, …). Mirrors VM.Properties server-side.
+	Properties map[string]string `protobuf:"bytes,12,rep,name=properties,proto3" json:"properties,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// Stable UUID of the hypervisor host running this VM. Empty when
 	// the VM is not currently placed (newly-created, in-flight migration,
 	// or recently evacuated). Lets clients (weft-tui Host column, the
@@ -274,9 +274,9 @@ func (x *VMInfo) GetUuid() string {
 	return ""
 }
 
-func (x *VMInfo) GetLabels() map[string]string {
+func (x *VMInfo) GetProperties() map[string]string {
 	if x != nil {
-		return x.Labels
+		return x.Properties
 	}
 	return nil
 }
@@ -10317,7 +10317,7 @@ type HostInfo struct {
 	Architecture   string                 `protobuf:"bytes,7,opt,name=architecture,proto3" json:"architecture,omitempty"` // "arm64" | "amd64" | "riscv64" | …
 	NetworkTypes   []string               `protobuf:"bytes,8,rep,name=network_types,json=networkTypes,proto3" json:"network_types,omitempty"`
 	VolumeBackends []string               `protobuf:"bytes,9,rep,name=volume_backends,json=volumeBackends,proto3" json:"volume_backends,omitempty"`
-	Labels         map[string]string      `protobuf:"bytes,10,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Properties     map[string]string      `protobuf:"bytes,10,rep,name=properties,proto3" json:"properties,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// state: "active" | "draining" | "down".
 	State            string `protobuf:"bytes,11,opt,name=state,proto3" json:"state,omitempty"`
 	CreatedAtUnixNs  int64  `protobuf:"varint,12,opt,name=created_at_unix_ns,json=createdAtUnixNs,proto3" json:"created_at_unix_ns,omitempty"`
@@ -10426,9 +10426,9 @@ func (x *HostInfo) GetVolumeBackends() []string {
 	return nil
 }
 
-func (x *HostInfo) GetLabels() map[string]string {
+func (x *HostInfo) GetProperties() map[string]string {
 	if x != nil {
-		return x.Labels
+		return x.Properties
 	}
 	return nil
 }
@@ -10477,7 +10477,7 @@ type RegisterHostRequest struct {
 	Architecture   string                 `protobuf:"bytes,7,opt,name=architecture,proto3" json:"architecture,omitempty"`
 	NetworkTypes   []string               `protobuf:"bytes,8,rep,name=network_types,json=networkTypes,proto3" json:"network_types,omitempty"`
 	VolumeBackends []string               `protobuf:"bytes,9,rep,name=volume_backends,json=volumeBackends,proto3" json:"volume_backends,omitempty"`
-	Labels         map[string]string      `protobuf:"bytes,10,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Properties     map[string]string      `protobuf:"bytes,10,rep,name=properties,proto3" json:"properties,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -10575,9 +10575,9 @@ func (x *RegisterHostRequest) GetVolumeBackends() []string {
 	return nil
 }
 
-func (x *RegisterHostRequest) GetLabels() map[string]string {
+func (x *RegisterHostRequest) GetProperties() map[string]string {
 	if x != nil {
-		return x.Labels
+		return x.Properties
 	}
 	return nil
 }
@@ -11027,30 +11027,30 @@ func (*SetHostStateResponse) Descriptor() ([]byte, []int) {
 	return file_weft_proto_rawDescGZIP(), []int{188}
 }
 
-// SetHostLabels replaces the host's labels atomically. The
-// scheduler's LabelSelectors match against these.
-type SetHostLabelsRequest struct {
+// SetHostProperties replaces the host's properties atomically. The
+// scheduler's property selectors match against these.
+type SetHostPropertiesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Uuid          string                 `protobuf:"bytes,1,opt,name=uuid,proto3" json:"uuid,omitempty"`
-	Labels        map[string]string      `protobuf:"bytes,2,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Properties    map[string]string      `protobuf:"bytes,2,rep,name=properties,proto3" json:"properties,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *SetHostLabelsRequest) Reset() {
-	*x = SetHostLabelsRequest{}
+func (x *SetHostPropertiesRequest) Reset() {
+	*x = SetHostPropertiesRequest{}
 	mi := &file_weft_proto_msgTypes[189]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *SetHostLabelsRequest) String() string {
+func (x *SetHostPropertiesRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*SetHostLabelsRequest) ProtoMessage() {}
+func (*SetHostPropertiesRequest) ProtoMessage() {}
 
-func (x *SetHostLabelsRequest) ProtoReflect() protoreflect.Message {
+func (x *SetHostPropertiesRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_weft_proto_msgTypes[189]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -11062,45 +11062,45 @@ func (x *SetHostLabelsRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use SetHostLabelsRequest.ProtoReflect.Descriptor instead.
-func (*SetHostLabelsRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use SetHostPropertiesRequest.ProtoReflect.Descriptor instead.
+func (*SetHostPropertiesRequest) Descriptor() ([]byte, []int) {
 	return file_weft_proto_rawDescGZIP(), []int{189}
 }
 
-func (x *SetHostLabelsRequest) GetUuid() string {
+func (x *SetHostPropertiesRequest) GetUuid() string {
 	if x != nil {
 		return x.Uuid
 	}
 	return ""
 }
 
-func (x *SetHostLabelsRequest) GetLabels() map[string]string {
+func (x *SetHostPropertiesRequest) GetProperties() map[string]string {
 	if x != nil {
-		return x.Labels
+		return x.Properties
 	}
 	return nil
 }
 
-type SetHostLabelsResponse struct {
+type SetHostPropertiesResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *SetHostLabelsResponse) Reset() {
-	*x = SetHostLabelsResponse{}
+func (x *SetHostPropertiesResponse) Reset() {
+	*x = SetHostPropertiesResponse{}
 	mi := &file_weft_proto_msgTypes[190]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *SetHostLabelsResponse) String() string {
+func (x *SetHostPropertiesResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*SetHostLabelsResponse) ProtoMessage() {}
+func (*SetHostPropertiesResponse) ProtoMessage() {}
 
-func (x *SetHostLabelsResponse) ProtoReflect() protoreflect.Message {
+func (x *SetHostPropertiesResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_weft_proto_msgTypes[190]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -11112,39 +11112,39 @@ func (x *SetHostLabelsResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use SetHostLabelsResponse.ProtoReflect.Descriptor instead.
-func (*SetHostLabelsResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use SetHostPropertiesResponse.ProtoReflect.Descriptor instead.
+func (*SetHostPropertiesResponse) Descriptor() ([]byte, []int) {
 	return file_weft_proto_rawDescGZIP(), []int{190}
 }
 
-// SetVMLabels replaces a VM's label set atomically. V0.1.8 :
-// labels drive SchedulingRule label-based selectors (`role=loom`,
+// SetVMProperties replaces a VM's property set atomically. V0.1.8 :
+// properties drive SchedulingRule property-based selectors (`role=loom`,
 // `deployment.type=ha`, etc.) and reserved keys gate system
 // behaviour : `deployment.type=ci` skips etcd-backup persistence ;
 // `deployment.type=ha` is the canonical respawn-eligible marker.
-type SetVMLabelsRequest struct {
+type SetVMPropertiesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Project       string                 `protobuf:"bytes,1,opt,name=project,proto3" json:"project,omitempty"`
 	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Labels        map[string]string      `protobuf:"bytes,3,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Properties    map[string]string      `protobuf:"bytes,3,rep,name=properties,proto3" json:"properties,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *SetVMLabelsRequest) Reset() {
-	*x = SetVMLabelsRequest{}
+func (x *SetVMPropertiesRequest) Reset() {
+	*x = SetVMPropertiesRequest{}
 	mi := &file_weft_proto_msgTypes[191]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *SetVMLabelsRequest) String() string {
+func (x *SetVMPropertiesRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*SetVMLabelsRequest) ProtoMessage() {}
+func (*SetVMPropertiesRequest) ProtoMessage() {}
 
-func (x *SetVMLabelsRequest) ProtoReflect() protoreflect.Message {
+func (x *SetVMPropertiesRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_weft_proto_msgTypes[191]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -11156,53 +11156,53 @@ func (x *SetVMLabelsRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use SetVMLabelsRequest.ProtoReflect.Descriptor instead.
-func (*SetVMLabelsRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use SetVMPropertiesRequest.ProtoReflect.Descriptor instead.
+func (*SetVMPropertiesRequest) Descriptor() ([]byte, []int) {
 	return file_weft_proto_rawDescGZIP(), []int{191}
 }
 
-func (x *SetVMLabelsRequest) GetProject() string {
+func (x *SetVMPropertiesRequest) GetProject() string {
 	if x != nil {
 		return x.Project
 	}
 	return ""
 }
 
-func (x *SetVMLabelsRequest) GetName() string {
+func (x *SetVMPropertiesRequest) GetName() string {
 	if x != nil {
 		return x.Name
 	}
 	return ""
 }
 
-func (x *SetVMLabelsRequest) GetLabels() map[string]string {
+func (x *SetVMPropertiesRequest) GetProperties() map[string]string {
 	if x != nil {
-		return x.Labels
+		return x.Properties
 	}
 	return nil
 }
 
-type SetVMLabelsResponse struct {
+type SetVMPropertiesResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Vm            *VMInfo                `protobuf:"bytes,1,opt,name=vm,proto3" json:"vm,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *SetVMLabelsResponse) Reset() {
-	*x = SetVMLabelsResponse{}
+func (x *SetVMPropertiesResponse) Reset() {
+	*x = SetVMPropertiesResponse{}
 	mi := &file_weft_proto_msgTypes[192]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *SetVMLabelsResponse) String() string {
+func (x *SetVMPropertiesResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*SetVMLabelsResponse) ProtoMessage() {}
+func (*SetVMPropertiesResponse) ProtoMessage() {}
 
-func (x *SetVMLabelsResponse) ProtoReflect() protoreflect.Message {
+func (x *SetVMPropertiesResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_weft_proto_msgTypes[192]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -11214,12 +11214,12 @@ func (x *SetVMLabelsResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use SetVMLabelsResponse.ProtoReflect.Descriptor instead.
-func (*SetVMLabelsResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use SetVMPropertiesResponse.ProtoReflect.Descriptor instead.
+func (*SetVMPropertiesResponse) Descriptor() ([]byte, []int) {
 	return file_weft_proto_rawDescGZIP(), []int{192}
 }
 
-func (x *SetVMLabelsResponse) GetVm() *VMInfo {
+func (x *SetVMPropertiesResponse) GetVm() *VMInfo {
 	if x != nil {
 		return x.Vm
 	}
@@ -23265,7 +23265,7 @@ var File_weft_proto protoreflect.FileDescriptor
 const file_weft_proto_rawDesc = "" +
 	"\n" +
 	"\n" +
-	"weft.proto\x12\aweft.v1\"\x9a\x03\n" +
+	"weft.proto\x12\aweft.v1\"\xaa\x03\n" +
 	"\x06VMInfo\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12&\n" +
 	"\x05state\x18\x02 \x01(\x0e2\x10.weft.v1.VMStateR\x05state\x12\x0e\n" +
@@ -23278,10 +23278,12 @@ const file_weft_proto_rawDesc = "" +
 	"\aproject\x18\t \x01(\tR\aproject\x12!\n" +
 	"\fproject_uuid\x18\n" +
 	" \x01(\tR\vprojectUuid\x12\x12\n" +
-	"\x04uuid\x18\v \x01(\tR\x04uuid\x123\n" +
-	"\x06labels\x18\f \x03(\v2\x1b.weft.v1.VMInfo.LabelsEntryR\x06labels\x12\x1b\n" +
-	"\thost_uuid\x18\r \x01(\tR\bhostUuid\x1a9\n" +
-	"\vLabelsEntry\x12\x10\n" +
+	"\x04uuid\x18\v \x01(\tR\x04uuid\x12?\n" +
+	"\n" +
+	"properties\x18\f \x03(\v2\x1f.weft.v1.VMInfo.PropertiesEntryR\n" +
+	"properties\x12\x1b\n" +
+	"\thost_uuid\x18\r \x01(\tR\bhostUuid\x1a=\n" +
+	"\x0fPropertiesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xcd\x01\n" +
 	"\x06AZInfo\x12\x12\n" +
@@ -23938,7 +23940,7 @@ const file_weft_proto_rawDesc = "" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"<\n" +
 	"\x15InstallPluginResponse\x12#\n" +
-	"\rinstance_uuid\x18\x01 \x01(\tR\finstanceUuid\"\x8d\x04\n" +
+	"\rinstance_uuid\x18\x01 \x01(\tR\finstanceUuid\"\x9d\x04\n" +
 	"\bHostInfo\x12\x12\n" +
 	"\x04uuid\x18\x01 \x01(\tR\x04uuid\x12\x1a\n" +
 	"\bhostname\x18\x02 \x01(\tR\bhostname\x12\x0e\n" +
@@ -23950,16 +23952,18 @@ const file_weft_proto_rawDesc = "" +
 	"hypervisor\x12\"\n" +
 	"\farchitecture\x18\a \x01(\tR\farchitecture\x12#\n" +
 	"\rnetwork_types\x18\b \x03(\tR\fnetworkTypes\x12'\n" +
-	"\x0fvolume_backends\x18\t \x03(\tR\x0evolumeBackends\x125\n" +
-	"\x06labels\x18\n" +
-	" \x03(\v2\x1d.weft.v1.HostInfo.LabelsEntryR\x06labels\x12\x14\n" +
+	"\x0fvolume_backends\x18\t \x03(\tR\x0evolumeBackends\x12A\n" +
+	"\n" +
+	"properties\x18\n" +
+	" \x03(\v2!.weft.v1.HostInfo.PropertiesEntryR\n" +
+	"properties\x12\x14\n" +
 	"\x05state\x18\v \x01(\tR\x05state\x12+\n" +
 	"\x12created_at_unix_ns\x18\f \x01(\x03R\x0fcreatedAtUnixNs\x12.\n" +
 	"\x14last_seen_at_unix_ns\x18\r \x01(\x03R\x10lastSeenAtUnixNs\x12\x1a\n" +
-	"\bcordoned\x18\x0e \x01(\bR\bcordoned\x1a9\n" +
-	"\vLabelsEntry\x12\x10\n" +
+	"\bcordoned\x18\x0e \x01(\bR\bcordoned\x1a=\n" +
+	"\x0fPropertiesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x94\x03\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xa4\x03\n" +
 	"\x13RegisterHostRequest\x12\x12\n" +
 	"\x04uuid\x18\x01 \x01(\tR\x04uuid\x12\x1a\n" +
 	"\bhostname\x18\x02 \x01(\tR\bhostname\x12\x0e\n" +
@@ -23971,10 +23975,12 @@ const file_weft_proto_rawDesc = "" +
 	"hypervisor\x12\"\n" +
 	"\farchitecture\x18\a \x01(\tR\farchitecture\x12#\n" +
 	"\rnetwork_types\x18\b \x03(\tR\fnetworkTypes\x12'\n" +
-	"\x0fvolume_backends\x18\t \x03(\tR\x0evolumeBackends\x12@\n" +
-	"\x06labels\x18\n" +
-	" \x03(\v2(.weft.v1.RegisterHostRequest.LabelsEntryR\x06labels\x1a9\n" +
-	"\vLabelsEntry\x12\x10\n" +
+	"\x0fvolume_backends\x18\t \x03(\tR\x0evolumeBackends\x12L\n" +
+	"\n" +
+	"properties\x18\n" +
+	" \x03(\v2,.weft.v1.RegisterHostRequest.PropertiesEntryR\n" +
+	"properties\x1a=\n" +
+	"\x0fPropertiesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"=\n" +
 	"\x14RegisterHostResponse\x12%\n" +
@@ -23999,22 +24005,26 @@ const file_weft_proto_rawDesc = "" +
 	"\x13SetHostStateRequest\x12\x12\n" +
 	"\x04uuid\x18\x01 \x01(\tR\x04uuid\x12\x14\n" +
 	"\x05state\x18\x02 \x01(\tR\x05state\"\x16\n" +
-	"\x14SetHostStateResponse\"\xa8\x01\n" +
-	"\x14SetHostLabelsRequest\x12\x12\n" +
-	"\x04uuid\x18\x01 \x01(\tR\x04uuid\x12A\n" +
-	"\x06labels\x18\x02 \x03(\v2).weft.v1.SetHostLabelsRequest.LabelsEntryR\x06labels\x1a9\n" +
-	"\vLabelsEntry\x12\x10\n" +
+	"\x14SetHostStateResponse\"\xc0\x01\n" +
+	"\x18SetHostPropertiesRequest\x12\x12\n" +
+	"\x04uuid\x18\x01 \x01(\tR\x04uuid\x12Q\n" +
+	"\n" +
+	"properties\x18\x02 \x03(\v21.weft.v1.SetHostPropertiesRequest.PropertiesEntryR\n" +
+	"properties\x1a=\n" +
+	"\x0fPropertiesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x17\n" +
-	"\x15SetHostLabelsResponse\"\xbe\x01\n" +
-	"\x12SetVMLabelsRequest\x12\x18\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x1b\n" +
+	"\x19SetHostPropertiesResponse\"\xd6\x01\n" +
+	"\x16SetVMPropertiesRequest\x12\x18\n" +
 	"\aproject\x18\x01 \x01(\tR\aproject\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\x12?\n" +
-	"\x06labels\x18\x03 \x03(\v2'.weft.v1.SetVMLabelsRequest.LabelsEntryR\x06labels\x1a9\n" +
-	"\vLabelsEntry\x12\x10\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12O\n" +
+	"\n" +
+	"properties\x18\x03 \x03(\v2/.weft.v1.SetVMPropertiesRequest.PropertiesEntryR\n" +
+	"properties\x1a=\n" +
+	"\x0fPropertiesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"6\n" +
-	"\x13SetVMLabelsResponse\x12\x1f\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\":\n" +
+	"\x17SetVMPropertiesResponse\x12\x1f\n" +
 	"\x02vm\x18\x01 \x01(\v2\x0f.weft.v1.VMInfoR\x02vm\"\x18\n" +
 	"\x16GetZombieReportRequest\"\xaf\x02\n" +
 	"\vZombieEntry\x12\x12\n" +
@@ -24836,7 +24846,7 @@ const file_weft_proto_rawDesc = "" +
 	"\x14VM_STATE_NOT_CREATED\x10\x01\x12\x14\n" +
 	"\x10VM_STATE_STOPPED\x10\x02\x12\x14\n" +
 	"\x10VM_STATE_RUNNING\x10\x03\x12\x12\n" +
-	"\x0eVM_STATE_ERROR\x10\x042\xc7j\n" +
+	"\x0eVM_STATE_ERROR\x10\x042\xdfj\n" +
 	"\tWeftAgent\x12<\n" +
 	"\aListVMs\x12\x17.weft.v1.ListVMsRequest\x1a\x18.weft.v1.ListVMsResponse\x12?\n" +
 	"\bVMStatus\x12\x18.weft.v1.VMStatusRequest\x1a\x19.weft.v1.VMStatusResponse\x12<\n" +
@@ -24920,9 +24930,9 @@ const file_weft_proto_rawDesc = "" +
 	"\tListHosts\x12\x19.weft.v1.ListHostsRequest\x1a\x1a.weft.v1.ListHostsResponse\x12<\n" +
 	"\aGetHost\x12\x17.weft.v1.GetHostRequest\x1a\x18.weft.v1.GetHostResponse\x12N\n" +
 	"\rHeartbeatHost\x12\x1d.weft.v1.HeartbeatHostRequest\x1a\x1e.weft.v1.HeartbeatHostResponse\x12K\n" +
-	"\fSetHostState\x12\x1c.weft.v1.SetHostStateRequest\x1a\x1d.weft.v1.SetHostStateResponse\x12N\n" +
-	"\rSetHostLabels\x12\x1d.weft.v1.SetHostLabelsRequest\x1a\x1e.weft.v1.SetHostLabelsResponse\x12H\n" +
-	"\vSetVMLabels\x12\x1b.weft.v1.SetVMLabelsRequest\x1a\x1c.weft.v1.SetVMLabelsResponse\x12T\n" +
+	"\fSetHostState\x12\x1c.weft.v1.SetHostStateRequest\x1a\x1d.weft.v1.SetHostStateResponse\x12Z\n" +
+	"\x11SetHostProperties\x12!.weft.v1.SetHostPropertiesRequest\x1a\".weft.v1.SetHostPropertiesResponse\x12T\n" +
+	"\x0fSetVMProperties\x12\x1f.weft.v1.SetVMPropertiesRequest\x1a .weft.v1.SetVMPropertiesResponse\x12T\n" +
 	"\x0fGetZombieReport\x12\x1f.weft.v1.GetZombieReportRequest\x1a .weft.v1.GetZombieReportResponse\x12Z\n" +
 	"\x12TriggerZombieSweep\x12\".weft.v1.TriggerZombieSweepRequest\x1a .weft.v1.GetZombieReportResponse\x12T\n" +
 	"\x0fSetHostCordoned\x12\x1f.weft.v1.SetHostCordonedRequest\x1a .weft.v1.SetHostCordonedResponse\x12E\n" +
@@ -25229,10 +25239,10 @@ var file_weft_proto_goTypes = []any{
 	(*HeartbeatHostResponse)(nil),                   // 188: weft.v1.HeartbeatHostResponse
 	(*SetHostStateRequest)(nil),                     // 189: weft.v1.SetHostStateRequest
 	(*SetHostStateResponse)(nil),                    // 190: weft.v1.SetHostStateResponse
-	(*SetHostLabelsRequest)(nil),                    // 191: weft.v1.SetHostLabelsRequest
-	(*SetHostLabelsResponse)(nil),                   // 192: weft.v1.SetHostLabelsResponse
-	(*SetVMLabelsRequest)(nil),                      // 193: weft.v1.SetVMLabelsRequest
-	(*SetVMLabelsResponse)(nil),                     // 194: weft.v1.SetVMLabelsResponse
+	(*SetHostPropertiesRequest)(nil),                // 191: weft.v1.SetHostPropertiesRequest
+	(*SetHostPropertiesResponse)(nil),               // 192: weft.v1.SetHostPropertiesResponse
+	(*SetVMPropertiesRequest)(nil),                  // 193: weft.v1.SetVMPropertiesRequest
+	(*SetVMPropertiesResponse)(nil),                 // 194: weft.v1.SetVMPropertiesResponse
 	(*GetZombieReportRequest)(nil),                  // 195: weft.v1.GetZombieReportRequest
 	(*ZombieEntry)(nil),                             // 196: weft.v1.ZombieEntry
 	(*GetZombieReportResponse)(nil),                 // 197: weft.v1.GetZombieReportResponse
@@ -25441,19 +25451,19 @@ var file_weft_proto_goTypes = []any{
 	(*AttestMsg)(nil),                               // 400: weft.v1.AttestMsg
 	(*AttestResult)(nil),                            // 401: weft.v1.AttestResult
 	(*AdmitResult)(nil),                             // 402: weft.v1.AdmitResult
-	nil,                                             // 403: weft.v1.VMInfo.LabelsEntry
+	nil,                                             // 403: weft.v1.VMInfo.PropertiesEntry
 	nil,                                             // 404: weft.v1.TimingEvent.MetaEntry
 	nil,                                             // 405: weft.v1.PlatformEvent.MetaEntry
 	nil,                                             // 406: weft.v1.InstallPluginRequest.InputsEntry
-	nil,                                             // 407: weft.v1.HostInfo.LabelsEntry
-	nil,                                             // 408: weft.v1.RegisterHostRequest.LabelsEntry
-	nil,                                             // 409: weft.v1.SetHostLabelsRequest.LabelsEntry
-	nil,                                             // 410: weft.v1.SetVMLabelsRequest.LabelsEntry
+	nil,                                             // 407: weft.v1.HostInfo.PropertiesEntry
+	nil,                                             // 408: weft.v1.RegisterHostRequest.PropertiesEntry
+	nil,                                             // 409: weft.v1.SetHostPropertiesRequest.PropertiesEntry
+	nil,                                             // 410: weft.v1.SetVMPropertiesRequest.PropertiesEntry
 	nil,                                             // 411: weft.v1.GetZombieReportResponse.ZombiesByKindEntry
 }
 var file_weft_proto_depIdxs = []int32{
 	0,   // 0: weft.v1.VMInfo.state:type_name -> weft.v1.VMState
-	403, // 1: weft.v1.VMInfo.labels:type_name -> weft.v1.VMInfo.LabelsEntry
+	403, // 1: weft.v1.VMInfo.properties:type_name -> weft.v1.VMInfo.PropertiesEntry
 	3,   // 2: weft.v1.ListAZsResponse.azs:type_name -> weft.v1.AZInfo
 	3,   // 3: weft.v1.GetAZResponse.az:type_name -> weft.v1.AZInfo
 	3,   // 4: weft.v1.CreateAZResponse.az:type_name -> weft.v1.AZInfo
@@ -25521,14 +25531,14 @@ var file_weft_proto_depIdxs = []int32{
 	172, // 66: weft.v1.ListPluginCatalogueResponse.entries:type_name -> weft.v1.PluginCatalogueEntry
 	173, // 67: weft.v1.ListInstalledPluginsResponse.instances:type_name -> weft.v1.PluginInstance
 	406, // 68: weft.v1.InstallPluginRequest.inputs:type_name -> weft.v1.InstallPluginRequest.InputsEntry
-	407, // 69: weft.v1.HostInfo.labels:type_name -> weft.v1.HostInfo.LabelsEntry
-	408, // 70: weft.v1.RegisterHostRequest.labels:type_name -> weft.v1.RegisterHostRequest.LabelsEntry
+	407, // 69: weft.v1.HostInfo.properties:type_name -> weft.v1.HostInfo.PropertiesEntry
+	408, // 70: weft.v1.RegisterHostRequest.properties:type_name -> weft.v1.RegisterHostRequest.PropertiesEntry
 	180, // 71: weft.v1.RegisterHostResponse.host:type_name -> weft.v1.HostInfo
 	180, // 72: weft.v1.ListHostsResponse.hosts:type_name -> weft.v1.HostInfo
 	180, // 73: weft.v1.GetHostResponse.host:type_name -> weft.v1.HostInfo
-	409, // 74: weft.v1.SetHostLabelsRequest.labels:type_name -> weft.v1.SetHostLabelsRequest.LabelsEntry
-	410, // 75: weft.v1.SetVMLabelsRequest.labels:type_name -> weft.v1.SetVMLabelsRequest.LabelsEntry
-	2,   // 76: weft.v1.SetVMLabelsResponse.vm:type_name -> weft.v1.VMInfo
+	409, // 74: weft.v1.SetHostPropertiesRequest.properties:type_name -> weft.v1.SetHostPropertiesRequest.PropertiesEntry
+	410, // 75: weft.v1.SetVMPropertiesRequest.properties:type_name -> weft.v1.SetVMPropertiesRequest.PropertiesEntry
+	2,   // 76: weft.v1.SetVMPropertiesResponse.vm:type_name -> weft.v1.VMInfo
 	196, // 77: weft.v1.GetZombieReportResponse.zombies:type_name -> weft.v1.ZombieEntry
 	411, // 78: weft.v1.GetZombieReportResponse.zombies_by_kind:type_name -> weft.v1.GetZombieReportResponse.ZombiesByKindEntry
 	205, // 79: weft.v1.AgentMessage.hello:type_name -> weft.v1.AgentHello
@@ -25705,8 +25715,8 @@ var file_weft_proto_depIdxs = []int32{
 	185, // 250: weft.v1.WeftAgent.GetHost:input_type -> weft.v1.GetHostRequest
 	187, // 251: weft.v1.WeftAgent.HeartbeatHost:input_type -> weft.v1.HeartbeatHostRequest
 	189, // 252: weft.v1.WeftAgent.SetHostState:input_type -> weft.v1.SetHostStateRequest
-	191, // 253: weft.v1.WeftAgent.SetHostLabels:input_type -> weft.v1.SetHostLabelsRequest
-	193, // 254: weft.v1.WeftAgent.SetVMLabels:input_type -> weft.v1.SetVMLabelsRequest
+	191, // 253: weft.v1.WeftAgent.SetHostProperties:input_type -> weft.v1.SetHostPropertiesRequest
+	193, // 254: weft.v1.WeftAgent.SetVMProperties:input_type -> weft.v1.SetVMPropertiesRequest
 	195, // 255: weft.v1.WeftAgent.GetZombieReport:input_type -> weft.v1.GetZombieReportRequest
 	198, // 256: weft.v1.WeftAgent.TriggerZombieSweep:input_type -> weft.v1.TriggerZombieSweepRequest
 	199, // 257: weft.v1.WeftAgent.SetHostCordoned:input_type -> weft.v1.SetHostCordonedRequest
@@ -25876,8 +25886,8 @@ var file_weft_proto_depIdxs = []int32{
 	186, // 421: weft.v1.WeftAgent.GetHost:output_type -> weft.v1.GetHostResponse
 	188, // 422: weft.v1.WeftAgent.HeartbeatHost:output_type -> weft.v1.HeartbeatHostResponse
 	190, // 423: weft.v1.WeftAgent.SetHostState:output_type -> weft.v1.SetHostStateResponse
-	192, // 424: weft.v1.WeftAgent.SetHostLabels:output_type -> weft.v1.SetHostLabelsResponse
-	194, // 425: weft.v1.WeftAgent.SetVMLabels:output_type -> weft.v1.SetVMLabelsResponse
+	192, // 424: weft.v1.WeftAgent.SetHostProperties:output_type -> weft.v1.SetHostPropertiesResponse
+	194, // 425: weft.v1.WeftAgent.SetVMProperties:output_type -> weft.v1.SetVMPropertiesResponse
 	197, // 426: weft.v1.WeftAgent.GetZombieReport:output_type -> weft.v1.GetZombieReportResponse
 	197, // 427: weft.v1.WeftAgent.TriggerZombieSweep:output_type -> weft.v1.GetZombieReportResponse
 	200, // 428: weft.v1.WeftAgent.SetHostCordoned:output_type -> weft.v1.SetHostCordonedResponse

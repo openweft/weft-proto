@@ -36,9 +36,9 @@ message VMInfo {
   // it. Survives a `RenameVM` if/when that lands.
   string   uuid          = 11;
   // V0.1.8 : operator-supplied annotations consumed by
-  // SchedulingRule label-based selectors + reserved-key system
-  // gates (deployment.type=ci|ha, …). Mirrors VM.Labels server-side.
-  map<string, string> labels = 12;
+  // SchedulingRule property-based selectors + reserved-key system
+  // gates (deployment.type=ci|ha, …). Mirrors VM.Properties server-side.
+  map<string, string> properties = 12;
   // Stable UUID of the hypervisor host running this VM. Empty when
   // the VM is not currently placed (newly-created, in-flight migration,
   // or recently evacuated). Lets clients (weft-tui Host column, the
@@ -1292,8 +1292,8 @@ service WeftAgent {
   rpc GetHost        (GetHostRequest)        returns (GetHostResponse);
   rpc HeartbeatHost  (HeartbeatHostRequest)  returns (HeartbeatHostResponse);
   rpc SetHostState    (SetHostStateRequest)    returns (SetHostStateResponse);
-  rpc SetHostLabels   (SetHostLabelsRequest)   returns (SetHostLabelsResponse);
-  rpc SetVMLabels     (SetVMLabelsRequest)     returns (SetVMLabelsResponse);
+  rpc SetHostProperties (SetHostPropertiesRequest) returns (SetHostPropertiesResponse);
+  rpc SetVMProperties   (SetVMPropertiesRequest)   returns (SetVMPropertiesResponse);
   rpc GetZombieReport     (GetZombieReportRequest)     returns (GetZombieReportResponse);
   rpc TriggerZombieSweep  (TriggerZombieSweepRequest)  returns (GetZombieReportResponse);
   rpc SetHostCordoned (SetHostCordonedRequest) returns (SetHostCordonedResponse);
@@ -1472,7 +1472,7 @@ message HostInfo {
   string architecture         = 7;   // "arm64" | "amd64" | "riscv64" | …
   repeated string network_types   = 8;
   repeated string volume_backends = 9;
-  map<string, string> labels  = 10;
+  map<string, string> properties = 10;
   // state: "active" | "draining" | "down".
   string state                = 11;
   int64  created_at_unix_ns   = 12;
@@ -1501,7 +1501,7 @@ message RegisterHostRequest {
   string architecture         = 7;
   repeated string network_types   = 8;
   repeated string volume_backends = 9;
-  map<string, string> labels  = 10;
+  map<string, string> properties = 10;
 }
 message RegisterHostResponse { HostInfo host = 1; }
 
@@ -1542,18 +1542,18 @@ message HeartbeatHostResponse {}
 message SetHostStateRequest  { string uuid = 1; string state = 2; }
 message SetHostStateResponse {}
 
-// SetHostLabels replaces the host's labels atomically. The
-// scheduler's LabelSelectors match against these.
-message SetHostLabelsRequest  { string uuid = 1; map<string, string> labels = 2; }
-message SetHostLabelsResponse {}
+// SetHostProperties replaces the host's properties atomically. The
+// scheduler's property selectors match against these.
+message SetHostPropertiesRequest  { string uuid = 1; map<string, string> properties = 2; }
+message SetHostPropertiesResponse {}
 
-// SetVMLabels replaces a VM's label set atomically. V0.1.8 :
-// labels drive SchedulingRule label-based selectors (`role=loom`,
+// SetVMProperties replaces a VM's property set atomically. V0.1.8 :
+// properties drive SchedulingRule property-based selectors (`role=loom`,
 // `deployment.type=ha`, etc.) and reserved keys gate system
 // behaviour : `deployment.type=ci` skips etcd-backup persistence ;
 // `deployment.type=ha` is the canonical respawn-eligible marker.
-message SetVMLabelsRequest  { string project = 1; string name = 2; map<string, string> labels = 3; }
-message SetVMLabelsResponse { VMInfo vm = 1; }
+message SetVMPropertiesRequest  { string project = 1; string name = 2; map<string, string> properties = 3; }
+message SetVMPropertiesResponse { VMInfo vm = 1; }
 
 // GetZombieReport exposes the latest snapshot of the agent's
 // zombiegc reconciler — what VMs it currently classifies as zombies,
@@ -2028,7 +2028,7 @@ message Flavor {
   string ram          = 3;  // "4Gi" / "256Mi" / raw integer = MB
   int32  ephemeral_gb = 4;
   string gpu          = 5;  // empty = none ; "1×A100-40G" etc.
-  // Reserved : 6..9 for future affinity labels / placement hints.
+  // Reserved : 6..9 for future affinity properties / placement hints.
   reserved 6, 7, 8, 9;
 }
 
