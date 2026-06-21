@@ -69,13 +69,13 @@ jobs:
           # who add a real buf.yaml later get our config + theirs in
           # a one-time merge.
           if [ ! -f buf.yaml ]; then
-            cat > buf.yaml <<'YAML'
-version: v1
-name: buf.build/openweft/weft
-breaking:
-  use:
-    - WIRE_JSON
-YAML
+            {
+              echo 'version: v1'
+              echo 'name: buf.build/openweft/weft'
+              echo 'breaking:'
+              echo '  use:'
+              echo '    - WIRE_JSON'
+            } > buf.yaml
           fi
           # WIRE_JSON catches field-number reuse, field-type changes,
           # required→optional flips, and renames that would break
