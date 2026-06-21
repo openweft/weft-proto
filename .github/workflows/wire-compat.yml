@@ -1,0 +1,84 @@
+name: wire-compat
+
+# Catches breaking proto changes BEFORE they ship : on every push to
+# main and every PR, run `buf breaking` against the latest released
+# tag. The check fails if a field is removed, renumbered, retyped, or
+# a required attribute changes — exactly the changes that would
+# break wire compatibility between two weft agents at different
+# versions in the same etcd cluster (the documented mixed-version
+# rolling-upgrade scenario, docs/operations/upgrade.md §2).
+#
+# Why on weft-proto specifically : this is the wire contract repo.
+# Every consumer (weft, weft-webui, weft-microvm-agent, the drivers)
+# vendors a specific weft-proto tag, so a breaking change here means
+# every downstream needs to bump in lockstep — and we want that to
+# be a deliberate decision, not an accident.
+#
+# Soft-fail on tag releases : a release commit that bumps the
+# major (or that explicitly accepted a breaking change in the
+# PR review) shouldn't be blocked. The check runs on push to main
+# + PRs ; tag pushes aren't gated.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  buf-breaking:
+    name: buf breaking vs latest tag
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0  # we need the tag refs
+
+      - name: pick latest tag
+        id: tag
+        run: |
+          tag=$(git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
+          if [ -z "$tag" ]; then
+            echo "no tags yet ; skip check"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: install buf
+        if: steps.tag.outputs.skip != 'true'
+        run: |
+          BUF_VERSION=1.45.0
+          curl -sSL "https://github.com/bufbuild/buf/releases/download/v${BUF_VERSION}/buf-Linux-x86_64" \
+            -o /usr/local/bin/buf
+          chmod +x /usr/local/bin/buf
+          buf --version
+
+      - name: buf breaking
+        if: steps.tag.outputs.skip != 'true'
+        env:
+          BASELINE: ${{ steps.tag.outputs.tag }}
+        run: |
+          set -euo pipefail
+          echo "checking proto wire-compat HEAD vs $BASELINE"
+          # buf needs a buf.yaml to declare the module ; emit a
+          # minimal one if the repo doesn't ship one yet. Operators
+          # who add a real buf.yaml later get our config + theirs in
+          # a one-time merge.
+          if [ ! -f buf.yaml ]; then
+            cat > buf.yaml <<'YAML'
+version: v1
+name: buf.build/openweft/weft
+breaking:
+  use:
+    - WIRE_JSON
+YAML
+          fi
+          # WIRE_JSON catches field-number reuse, field-type changes,
+          # required→optional flips, and renames that would break
+          # JSON serialization of the same wire bytes. WIRE alone
+          # would let renames slip ; we want stricter.
+          buf breaking --against ".git#tag=${BASELINE}" --config buf.yaml
