@@ -1,0 +1,82 @@
+name: wire-compat
+
+# Catches breaking proto changes BEFORE they ship: on every push to main and
+# every PR, run `buf breaking` against a PINNED baseline tag.
+#
+# Why on weft-proto specifically: this is the wire contract repo. Every consumer
+# (weft, weft-webui, weft-microvm, weft-tui, the drivers) requires a specific
+# weft-proto version, so a breaking change here means every downstream bumps in
+# lockstep — and that should be a deliberate decision, not an accident.
+#
+# WHY THE BASELINE IS PINNED, AND NOT THE LATEST TAG.
+# This gate existed before and was removed on purpose (commit 73d5171d): it
+# compared against the FLOATING latest tag while the schema was still moving, so
+# every legitimate refactor flagged as breaking and the check became pure
+# friction. That commit set the condition for bringing it back — "re-add when
+# the project tags a stable baseline (and re-instate WIRE_JSON against that tag,
+# not the floating latest)". v0.22.0 is that baseline.
+#
+# So: BASELINE is a constant. Moving it is a deliberate act that says "this is
+# the new contract everyone bumps to", not something that happens by itself the
+# next time someone pushes a tag.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  # The stable baseline. Bump only when declaring a new wire contract.
+  BASELINE: v0.22.0
+
+jobs:
+  buf-breaking:
+    name: buf breaking vs ${{ github.event.repository.name }} baseline
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # the baseline tag ref has to be present
+
+      - name: check the baseline tag exists
+        run: |
+          set -euo pipefail
+          git rev-parse -q --verify "refs/tags/${BASELINE}" >/dev/null || {
+            echo "baseline tag ${BASELINE} is missing — fix env.BASELINE" >&2
+            exit 1
+          }
+          echo "baseline: ${BASELINE}"
+
+      - name: install buf
+        run: |
+          set -euo pipefail
+          BUF_VERSION=1.45.0
+          curl -sSL "https://github.com/bufbuild/buf/releases/download/v${BUF_VERSION}/buf-Linux-x86_64" \
+            -o /usr/local/bin/buf
+          chmod +x /usr/local/bin/buf
+          buf --version
+
+      - name: buf breaking
+        run: |
+          set -euo pipefail
+          echo "checking proto wire-compat HEAD vs ${BASELINE}"
+          # buf needs a buf.yaml to declare the module; emit a minimal one if the
+          # repo does not ship one yet.
+          if [ ! -f buf.yaml ]; then
+            {
+              echo 'version: v1'
+              echo 'name: buf.build/openweft/weft'
+              echo 'breaking:'
+              echo '  use:'
+              echo '    - WIRE_JSON'
+            } > buf.yaml
+          fi
+          # WIRE_JSON catches field-number reuse, field-type changes,
+          # required→optional flips, and renames that would break JSON
+          # serialisation of the same wire bytes. WIRE alone would let renames
+          # slip through, and a rename is exactly what breaks a Go consumer.
+          buf breaking --against ".git#tag=${BASELINE}" --config buf.yaml
