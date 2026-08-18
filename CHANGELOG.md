@@ -7,6 +7,12 @@ and this project aims to adhere to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased]
 
+> **Note.** The entries below this line accumulated while v0.12 through
+> v0.21.0 were tagged without being split into per-version sections. They
+> describe changes that are **already released**, not pending ones. The
+> v0.22.0 section below is the first written against a real tag range
+> (v0.21.0..main); untangling the backlog above it is separate work.
+
 ### Added
 - `UninstallPlugin` RPC + `UninstallPluginRequest{name, instance_uuid}` /
   `UninstallPluginResponse` (commit ce47616). Counterpart to
@@ -47,6 +53,38 @@ and this project aims to adhere to [Semantic Versioning](https://semver.org/spec
   - `PodSpec.labels` (guest.proto, 5) → `properties`
   Single naming across the openweft stack ("properties everywhere"
   per the cluster.hcl Host.properties spec field).
+
+## [v0.22.0] — 2026-08-18
+
+First tag since v0.21.0. Additions only against that tag: no message or RPC was
+renamed or removed, and no field number was reused. (The `labels` → `properties`
+rename recorded under Unreleased shipped in v0.21.0 and is not part of this
+release.)
+
+### Added
+- `VMInfo.status` + `SetVMStatus` RPC (`SetVMStatusRequest{uuid, status}` /
+  `SetVMStatusResponse`) : the operator's administrative intent for a VM, as
+  distinct from its observed runtime state. This is what weft-tui needs to show
+  and flip that intent.
+- `VMInfo.restart_count` + `VMInfo.max_restarts` : the k8s-style RESTARTS
+  column, so a supervisor's retry budget is visible on the wire rather than
+  inferred.
+- `RestartVMRequest.host_uuid` : lets a restart be dispatched across hosts
+  instead of only to the one holding the connection.
+- `RegisterMicroVMRequest` / `RegisterMicroVMOp` : `cpu` and `mem_mb`
+  workload-shape fields, and an `image` field carrying the OCI reference.
+- `UninstallPlugin` RPC (`UninstallPluginRequest{name, instance_uuid}` /
+  `UninstallPluginResponse`) : the counterpart to `InstallPlugin`.
+- `EnablePlugin` / `DisablePlugin` RPCs and `PluginInstance.disabled` : a soft
+  admin-state toggle that leaves the install side-effects in place.
+- `Flavor.uuid` promoted to a stable identifier.
+
+### Changed
+- The `go` directive moves to 1.26.4, the fleet floor.
+- The `wire-compat` CI gate was dropped during development, deliberately: while
+  the schema moved quickly every legitimate refactor flagged as breaking. This
+  tag is the stable baseline that commit asked for, so the gate can be
+  reinstated against **v0.22.0** rather than against a floating latest.
 
 ## [v0.11.6] — 2026-06-14
 
