@@ -7,52 +7,7 @@ and this project aims to adhere to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased]
 
-> **Note.** The entries below this line accumulated while v0.12 through
-> v0.21.0 were tagged without being split into per-version sections. They
-> describe changes that are **already released**, not pending ones. The
-> v0.22.0 section below is the first written against a real tag range
-> (v0.21.0..main); untangling the backlog above it is separate work.
-
-### Added
-- `UninstallPlugin` RPC + `UninstallPluginRequest{name, instance_uuid}` /
-  `UninstallPluginResponse` (commit ce47616). Counterpart to
-  `InstallPlugin`. Reverses Network / SG / VM creation on the agent
-  side via `pluginstore.Manager.Uninstall`, then drops the instance
-  from the StateStore. Identified by (name, instance_uuid) ; UUID
-  mandatory to support multi-instance plugins.
-- `EnablePlugin` / `DisablePlugin` RPCs + `PluginInstance.disabled`
-  bool field (commit 37361e5). Soft admin-state toggle that preserves
-  the install side-effects (VMs keep running) but flips a flag
-  consumer-facing gates honour — e.g. weft-tui's sidebar
-  RequiresPlugin filter hides the plugin's catalogue entries on the
-  next refresh. Both RPCs idempotent ; a no-op when the flag already
-  matches the requested value.
-- `SetPodSpec` / `GetPodSpec` RPCs on `WeftAgent` : operator-facing
-  surface that publishes a guestv1.PodSpec (carried as a protojson-
-  encoded `spec_json` byte blob to avoid importing guestv1 into
-  weft.proto). Pairs with the in-memory `Adapter.SetPodSpec` +
-  `<stateDir>/podspecs.hcl` persistence — operators no longer need
-  to embed the spec at boot to drive the GuestPodPlane HelloAck.
-- `GetMicroVMMetrics` RPC + `MicroVMMetricsResponse` : per-VM
-  telemetry snapshot (cpu / mem / net / disk + uptime). Returns the
-  zero shape until the runtime-telemetry pipeline lands ; the webui
-  Metrics tab renders real fields straight off the wire instead of
-  falling back to Unimplemented + synthetic mock data.
-
-### Changed (breaking)
-- Rename `labels` annotation map → `properties` across the
-  host/VM scheduler surface. Field numbers preserved (wire-compat
-  for binary payloads). RPC + message names renamed :
-  - `SetHostLabels` → `SetHostProperties`
-  - `SetVMLabels` → `SetVMProperties`
-  - `*Request`/`*Response` renamed in lockstep
-  - `HostInfo.labels` (10) → `HostInfo.properties`
-  - `VMInfo.labels` (12) → `VMInfo.properties`
-  - `RegisterHostRequest.labels` (10) → `properties`
-  - `HostRegistration.labels` (agent.proto, 10) → `properties`
-  - `PodSpec.labels` (guest.proto, 5) → `properties`
-  Single naming across the openweft stack ("properties everywhere"
-  per the cluster.hcl Host.properties spec field).
+Nothing yet.
 
 ## [v0.22.0] — 2026-08-18
 
@@ -86,6 +41,98 @@ release.)
   tag is the stable baseline that commit asked for, so the gate can be
   reinstated against **v0.22.0** rather than against a floating latest.
 
+## [v0.21.0] — 2026-06-22
+
+### Added
+- `VMState` extended with five lifecycle states that previously had no wire
+  representation: `VM_STATE_CREATED` (5) for a vmDir provisioned and
+  registered but never started, `VM_STATE_STARTING` (6) between an accepted
+  `StartVM` and the guest's first heartbeat, `VM_STATE_STOPPING` (7) while
+  qemu/vz drains, `VM_STATE_ZOMBIE` (8) for a process that died without
+  going through `StopVM`, and `VM_STATE_DELETING` (9) so the
+  operator-visible event survives long enough to flush. `VM_STATE_ZOMBIE`
+  is what `zombiegc` surfaces as `weft_vm_zombies`.
+
+## [v0.20.0] — 2026-06-22
+
+### Added
+- Host CPU / RAM / GPU inventory on `HostInfo` and `HostRegistration`:
+  `cpu_count`, `memory_mib`, and `repeated GPU gpus`.
+- `GPU` message — `vendor` / `model` / `memory_gib` / `mig_capable`, the
+  last for datacenter SKUs that support MIG slicing.
+
+## [v0.19.0] — 2026-06-22
+
+### Added
+- Host OS, kernel, network and storage facts on `HostInfo` and
+  `HostRegistration`: `os_id`, `os_version`, `os_pretty`, `kernel_version`,
+  `repeated NetworkInterface network_interfaces` and
+  `repeated StorageMount storage_mounts`.
+
+## [v0.18.0] — 2026-06-22
+
+### Added
+- `HostInfo.agent_version` + `HostInfo.driver_versions`, mirrored on
+  `HostRegistration`, so the control plane can see what each host is
+  actually running rather than inferring it.
+- `GetClusterInfoResponse.control_plane_host_uuids`.
+
+## [v0.17.0] — 2026-06-22
+
+### Added
+- `GetClusterInfo` / `SetClusterName` RPCs +
+  `GetClusterInfoResponse{cluster_name, local_host_uuid}`.
+
+### Fixed
+- CI: the `wire-compat` job (buf breaking vs the latest tag) had a YAML
+  heredoc parse error and was not running.
+
+## [v0.16.0] — 2026-06-20
+
+### Added
+- `GuestHello.reported_cid` (uint32, field 5) — guest-side AF_VSOCK CID
+  readback, so the host learns the CID the guest actually got rather than
+  the one it asked for.
+
+## [v0.15.0] — 2026-06-20
+
+### Added
+- `SetPodSpec` / `GetPodSpec` RPCs on `WeftAgent`. The spec travels as a
+  protojson-encoded `spec_json` blob rather than an imported guestv1
+  message, to keep guestv1 out of weft.proto.
+- `GetMicroVMMetrics` RPC + `MicroVMMetricsResponse` — per-VM cpu / mem /
+  net / disk + uptime snapshot.
+
+## [v0.14.0] — 2026-06-20
+
+### Added
+- Generated Go bindings for `agentv1` and `guestv1` are now committed
+  alongside `weftv1`, so consumers no longer regenerate them locally.
+- `UpdateContainer` message (`container_id`, `command`, `env`) in
+  guest.proto.
+
+## [v0.13.0] — 2026-06-19
+
+### Added
+- `SetProjectTenant` RPC + `ProjectInfo.tenant_uuid` (field 4), completing
+  the project surface alongside List / Create / Rename / Delete.
+
+## [v0.12.0] — 2026-06-19
+
+### Added
+- `RestartVM` RPC + `VMInfo.host_uuid` (field 13).
+
+### Changed (breaking)
+- `labels` → `properties` across the host/VM scheduler surface. Field
+  numbers are preserved, so binary payloads stay wire-compatible; the RPC
+  and message names change: `SetHostLabels` → `SetHostProperties`,
+  `SetVMLabels` → `SetVMProperties`, `HostInfo.labels` (10) →
+  `properties`, `VMInfo.labels` (12) → `properties`,
+  `RegisterHostRequest.labels` (10), `HostRegistration.labels`
+  (agent.proto, 10) and `PodSpec.labels` (guest.proto, 5) likewise. One
+  name across the openweft stack, matching `cluster.hcl`'s
+  `Host.properties`.
+
 ## [v0.11.6] — 2026-06-14
 
 ### Added
@@ -101,6 +148,61 @@ release.)
   anti-DDoS PPS cap on inbound traffic to a floating IP. 0 means
   no cap ; >100k clamps. Persisted via the weft adapter, consumed
   by the floatingipnat reconciler on the host side.
+
+## [v0.11.4] — 2026-06-14
+
+### Fixed
+- Regenerated the `AttestationService` stubs. The v0.11.3 merge kept the
+  `.proto` change but carried stale `.pb.go` files, so the service was
+  declared and not generated.
+
+## [v0.11.3] — 2026-06-14
+
+### Added
+- `AttestationService` — node admission over opaque attest blobs:
+  `Enroll`, `CompleteEnroll`, `RequestAdmission`, `Admit`. The payloads
+  travel as `AttestMsg{payload, ak_name}` / `AttestResult{ok, reason}` /
+  `AdmitResult{granted, reason, ak_name}` so weft-proto carries no
+  attestation types of its own; `ak_name` is the AK Name key used to route
+  `CompleteEnroll` and `Admit`.
+
+## [v0.11.2] — 2026-06-14
+
+### Added
+- `NetworkInfo.external_mode` / `vlan` / `parent_interface` for L2 and
+  VLAN floating IPs.
+
+## [v0.11.1] — 2026-06-09
+
+### Added
+- `TriggerZombieSweep` RPC, returning the same `GetZombieReportResponse`.
+  Closes the `weft instance gc --apply` loop.
+
+## [v0.11.0] — 2026-06-09
+
+### Added
+- `GetZombieReport` RPC + `ZombieEntry` — uuid / name / project / host /
+  kind / reason / deployment type, plus `detected_at_unix_ns` and
+  `host_down_since_unix_ns`.
+
+## [v0.10.1] — 2026-06-09
+
+### Added
+- `SetVMLabels` RPC + `VMInfo.labels` (field 12). Renamed to
+  `SetVMProperties` / `properties` in v0.12.0.
+
+## [v0.10.0] — 2026-06-08
+
+### Added
+- `HealthProbe` on `SchedulingRule` — `NONE` / `HTTP` / `TCP` / `EXEC`
+  with `http_path` / `http_port` / `http_method` / `http_status_ok`,
+  `tcp_port`, `exec_command`, and `initial_delay_ms` to wait out VM boot
+  before the first probe.
+- `RespawnPolicy` on `SchedulingRule`.
+
+### Fixed
+- Doc: `MapFloatingIP`'s comment described Envoy; the actual data plane is
+  the embedded Caddy.
 
 ## [v0.9.0] — 2026-06-05
 
@@ -216,6 +318,12 @@ release.)
   migrate onto the live RPC.
 
 ## [v0.6.0] — 2026-06-05
+
+> **No v0.6.0 tag was ever pushed.** The repository goes v0.5.0 → v0.7.0.
+> Everything below shipped to consumers as part of **v0.7.0**:
+> `RevertVolumeSnapshot` is absent from `v0.5.0:weft.proto` and present in
+> `v0.7.0:weft.proto`. The section is kept, rather than folded into v0.7.0,
+> because it is the only place this surface is written up.
 
 ### Added
 
