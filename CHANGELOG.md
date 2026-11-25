@@ -8,6 +8,10 @@ and this project aims to adhere to [Semantic Versioning](https://semver.org/spec
 ## [Unreleased]
 
 ### Added
+- Admin RPCs `SetGuestSecretRef`, `DeleteGuestSecretRef` and
+  `ListGuestSecretRefs` (`GuestSecretRef{secret_id, ref, version}`): the
+  cluster-state map from a GuestSecrets ID to the secretsource reference the
+  host resolves. References only; no message accepts or returns a value.
 - `secrets.proto` (`weft.guest.v1`): `GuestSecrets.Fetch(FetchRequest) ->
   FetchResponse`, how a micro-VM fetches a secret by ID over the guest-only
   vsock server. Request carries `secret_id`, `boot_token` (slot for the
