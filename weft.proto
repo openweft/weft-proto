@@ -1114,6 +1114,11 @@ message CubeFSMount {
   string access_key       = 4;
   string secret_key       = 5;
   string subdir           = 6;
+  // GuestSecrets secret IDs (guest.proto / secrets.proto), mutually
+  // exclusive with the inline key beside them.
+  string access_key_ref   = 7;
+  string secret_key_ref   = 8;
+  uint64 secret_version   = 9;
 }
 
 message ShareMount {
