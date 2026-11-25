@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/runtime/protoimpl"
 )
 
 // A nil message answers its zero value from every getter: generated code
@@ -44,6 +45,24 @@ func TestGettersReturnSetValues(t *testing.T) {
 	}
 	if (&WireGuard{PrivateKeyRef: "z"}).GetPrivateKeyRef() != "z" {
 		t.Error("WireGuard getter")
+	}
+}
+
+// ProtoReflect on a live message caches its message info in the message's
+// own state; a nil message must still answer a usable (invalid) reflection.
+func TestProtoReflectCachesMessageInfo(t *testing.T) {
+	req := &FetchRequest{}
+	req.ProtoReflect()
+	if protoimpl.X.MessageStateOf(protoimpl.Pointer(req)).LoadMessageInfo() == nil {
+		t.Error("FetchRequest: message info not cached")
+	}
+	resp := &FetchResponse{}
+	resp.ProtoReflect()
+	if protoimpl.X.MessageStateOf(protoimpl.Pointer(resp)).LoadMessageInfo() == nil {
+		t.Error("FetchResponse: message info not cached")
+	}
+	if (*FetchRequest)(nil).ProtoReflect().IsValid() || (*FetchResponse)(nil).ProtoReflect().IsValid() {
+		t.Error("a nil message reflected as valid")
 	}
 }
 
